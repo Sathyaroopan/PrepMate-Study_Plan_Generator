@@ -24,7 +24,7 @@ export default function Sidebar() {
         <div className="flex-1">
           <div className="p-6">
             <Image 
-              src="/new/logo_icon_light.png" 
+              src="/logo_icon_light.png" 
               alt="Site Logo" 
               width={40} 
               height={40} 
@@ -33,7 +33,7 @@ export default function Sidebar() {
             />
             
             <Image 
-              src="/new/logo_icon_dark.png" 
+              src="/logo_icon_dark.png" 
               alt="Site Logo" 
               width={40} 
               height={40} 
