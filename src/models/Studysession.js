@@ -12,11 +12,6 @@ const StudySessionSchema = new mongoose.Schema(
       ref: "Task",
       required: false,
     },
-    examId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Exam",
-      required: false,
-    },
     title: {
       type: String, // Calculated title (e.g. "Study: Intro to AI - Project")
       required: true,

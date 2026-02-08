@@ -3,7 +3,6 @@ import User from "../models/User.js";
 import Task from "../models/Task.js";
 import Timetable from "../models/Timetable.js";
 import Studysession from "../models/Studysession.js";
-import Exam from "../models/Exam.js";
 import Course from "../models/Course.js";
 
 export async function generateStudyPlan(userId, startDate = new Date(), daysToPlan = 14) {
@@ -11,7 +10,6 @@ export async function generateStudyPlan(userId, startDate = new Date(), daysToPl
 
     // 1. Fetch Data
     const tasks = await Task.find({ userId, status: { $ne: "completed" } }).populate("courseId", "name").lean();
-    const exams = await Exam.find({ userId, examDate: { $gte: startDate } }).populate("courseId", "name").lean();
     const timetableDoc = await Timetable.findOne({ userId });
 
     // Clear existing future sessions to regenerate logic
@@ -20,9 +18,6 @@ export async function generateStudyPlan(userId, startDate = new Date(), daysToPl
     await Studysession.deleteMany({ userId, startTime: { $gte: startDate } });
 
     // 2. Prepare Work Queue
-    // Combine Tasks and Exams into a unified list of "Allocatable Units"
-    // Heuristic: tasks usually take 2-4 hours. Exams need multiple sessions.
-
     let workItems = [];
 
     // Process Tasks
@@ -37,24 +32,6 @@ export async function generateStudyPlan(userId, startDate = new Date(), daysToPl
             remainingMinutes: (task.estimatedHours || 2) * 60,
             allowSplit: true, // task can be split across sessions
             deadline: new Date(task.deadline)
-        });
-    });
-
-    // Process Exams (Create fake "Study for Exam" tasks)
-    exams.forEach(exam => {
-        // Heuristic: 1 hour study per 10% syllabus weight? Or adjustable.
-        // Let's default to 5 hours prep for an exam if not specified.
-        const prepHours = (exam.syllabusWeight || 50) / 10;
-        workItems.push({
-            type: "exam_prep",
-            id: exam._id, // References the Exam
-            title: `Prep: ${exam.courseId?.name || "Exam"}`,
-            courseName: exam.courseId?.name,
-            details: exam,
-            priority: 5, // High priority
-            remainingMinutes: prepHours * 60,
-            allowSplit: true,
-            deadline: new Date(exam.examDate)
         });
     });
 
@@ -143,8 +120,7 @@ export async function generateStudyPlan(userId, startDate = new Date(), daysToPl
                 const sessionEnd = new Date(cursor.getTime() + maxDuration * 60000);
                 newSessions.push({
                     userId,
-                    taskId: item.type === 'task' ? item.id : null,
-                    examId: item.type === 'exam_prep' ? item.id : null,
+                    taskId: item.id,
                     title: item.title,
                     startTime: new Date(cursor),
                     endTime: sessionEnd,

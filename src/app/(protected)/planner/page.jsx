@@ -7,7 +7,6 @@ import { FiPlus, FiBookOpen, FiClock, FiCalendar, FiCheckCircle, FiAlertCircle, 
 export default function PlannerPage() {
   const [sessions, setSessions] = useState([]);
   const [tasks, setTasks] = useState([]);
-  const [exams, setExams] = useState([]);
   const [courses, setCourses] = useState([]);
 
   const [loading, setLoading] = useState(true);
@@ -15,7 +14,6 @@ export default function PlannerPage() {
 
   // Form States
   const [showTaskForm, setShowTaskForm] = useState(false);
-  const [showExamForm, setShowExamForm] = useState(false);
 
   const [taskForm, setTaskForm] = useState({
     title: "",
@@ -25,28 +23,20 @@ export default function PlannerPage() {
     priority: "medium"
   });
 
-  const [examForm, setExamForm] = useState({
-    courseName: "",
-    examDate: "",
-    syllabusWeight: 50
-  });
-
   const [message, setMessage] = useState("");
 
   const fetchData = async () => {
     setLoading(true);
     try {
       // Parallel Fetching
-      const [sessionsRes, tasksRes, examsRes, profileRes] = await Promise.all([
+      const [sessionsRes, tasksRes, profileRes] = await Promise.all([
         fetch("/api/studysessions"),
         fetch("/api/tasks"),
-        fetch("/api/exams"),
         fetch("/api/auth/profile")
       ]);
 
       if (sessionsRes.ok) setSessions(await sessionsRes.json());
       if (tasksRes.ok) setTasks(await tasksRes.json());
-      if (examsRes.ok) setExams(await examsRes.json());
       if (profileRes.ok) {
         const profile = await profileRes.json();
         setCourses(profile.courses || []);
@@ -84,25 +74,7 @@ export default function PlannerPage() {
     }
   };
 
-  const handleExamSubmit = async (e) => {
-    e.preventDefault();
-    setMessage("Saving exam...");
-    try {
-      const res = await fetch("/api/exams", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(examForm)
-      });
-      if (res.ok) {
-        setMessage("Exam added!");
-        setExamForm({ courseName: "", examDate: "", syllabusWeight: 50 });
-        setShowExamForm(false);
-        fetchData(); // Refresh all
-      }
-    } catch (error) {
-      setMessage("Failed to add exam");
-    }
-  };
+
 
   const handleTaskComplete = async (taskId) => {
     try {
@@ -170,27 +142,21 @@ export default function PlannerPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-        {/* LEFT COLUMN: Workload (Tasks & Exams) */}
+        {/* LEFT COLUMN: Workload (Tasks) */}
         <div className="lg:col-span-1 space-y-6">
 
-          {/* Workload Header & Add Buttons */}
+          {/* Workload Header & Add Button */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4">
             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-800 dark:text-white">
               <FiBookOpen className="text-indigo-500" /> Pending Workload
             </h2>
 
-            <div className="grid grid-cols-2 gap-2 mb-4">
+            <div className="mb-4">
               <button
                 onClick={() => setShowTaskForm(!showTaskForm)}
-                className="flex items-center justify-center gap-2 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300 rounded-lg hover:bg-indigo-100 transition text-sm font-medium"
+                className="w-full flex items-center justify-center gap-2 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300 rounded-lg hover:bg-indigo-100 transition text-sm font-medium"
               >
                 <FiPlus /> Add Task
-              </button>
-              <button
-                onClick={() => setShowExamForm(!showExamForm)}
-                className="flex items-center justify-center gap-2 py-2 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-300 rounded-lg hover:bg-red-100 transition text-sm font-medium"
-              >
-                <FiPlus /> Add Exam
               </button>
             </div>
 
@@ -214,41 +180,8 @@ export default function PlannerPage() {
               </form>
             )}
 
-            {showExamForm && (
-              <form onSubmit={handleExamSubmit} className="space-y-3 mb-4 p-4 border rounded-xl bg-gray-50 dark:bg-gray-700/50">
-                <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">New Exam</h3>
-                <select className="w-full p-2 text-sm border rounded-lg bg-white dark:bg-gray-800" value={examForm.courseName} onChange={e => setExamForm({ ...examForm, courseName: e.target.value })} required>
-                  <option value="">Select Course</option>
-                  {courses.map((c, i) => <option key={i} value={c}>{c}</option>)}
-                </select>
-                <input type="datetime-local" className="w-full p-2 text-sm border rounded-lg bg-white dark:bg-gray-800" value={examForm.examDate} onChange={e => setExamForm({ ...examForm, examDate: e.target.value })} required />
-                <input type="number" placeholder="Weight %" className="w-full p-2 text-sm border rounded-lg bg-white dark:bg-gray-800" value={examForm.syllabusWeight} onChange={e => setExamForm({ ...examForm, syllabusWeight: e.target.value })} required />
-                <button type="submit" className="w-full py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition">Save Exam</button>
-              </form>
-            )}
-
             {/* LISTS */}
             <div className="space-y-6">
-              <div>
-                <h3 className="text-xs font-bold text-gray-500 uppercase mb-3 px-1">Upcoming Exams</h3>
-                {exams.length === 0 ? <p className="text-sm text-gray-400 italic px-1">No upcoming exams.</p> : (
-                  <div className="space-y-3">
-                    {exams.map(exam => (
-                      <div key={exam._id} className="p-3 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg shadow-sm flex justify-between items-center group hover:border-red-200 transition">
-                        <div className="flex items-center gap-3">
-                          <div className="w-1 h-8 bg-red-500 rounded-full"></div>
-                          <div>
-                            <p className="font-semibold text-sm text-gray-800 dark:text-gray-200">{exam.courseId?.name || "Exam"}</p>
-                            <p className="text-xs text-gray-500">{new Date(exam.examDate).toLocaleDateString()}</p>
-                          </div>
-                        </div>
-                        <span className="text-xs font-mono bg-red-50 text-red-600 px-2 py-1 rounded-full border border-red-100">{exam.syllabusWeight}%</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
               <div>
                 <h3 className="text-xs font-bold text-gray-500 uppercase mb-3 px-1">Pending Tasks</h3>
                 {tasks.length === 0 ? <p className="text-sm text-gray-400 italic px-1">No pending tasks.</p> : (
