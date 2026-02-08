@@ -58,6 +58,13 @@ export default function Sidebar() {
             </Link>
 
             <Link
+              href="/tasks"
+              className={`px-4 py-2.5 rounded-lg transition-all duration-200 ${getLinkStyles("/tasks")}`}
+            >
+              Manage Tasks
+            </Link>
+
+            <Link
               href="/planner"
               className={`px-4 py-2.5 rounded-lg transition-all duration-200 ${getLinkStyles("/planner")}`}
             >
