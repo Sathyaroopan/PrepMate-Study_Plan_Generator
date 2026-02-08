@@ -2,15 +2,20 @@
 
 import { useState, useEffect } from "react";
 import SchedulerTrigger from "@/components/SchedulerTrigger";
-import { FiPlus, FiBookOpen, FiClock, FiCalendar } from "react-icons/fi";
+import { FiPlus, FiBookOpen, FiClock, FiCalendar, FiCheckCircle, FiAlertCircle, FiChevronRight } from "react-icons/fi";
 
 export default function PlannerPage() {
   const [sessions, setSessions] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [tasks, setTasks] = useState([]);
+  const [exams, setExams] = useState([]);
   const [courses, setCourses] = useState([]);
 
+  const [loading, setLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+
   // Form States
-  const [activeTab, setActiveTab] = useState("plan"); // "plan", "addTask", "addExam"
+  const [showTaskForm, setShowTaskForm] = useState(false);
+  const [showExamForm, setShowExamForm] = useState(false);
 
   const [taskForm, setTaskForm] = useState({
     title: "",
@@ -28,55 +33,51 @@ export default function PlannerPage() {
 
   const [message, setMessage] = useState("");
 
-  const fetchSessions = async () => {
+  const fetchData = async () => {
+    setLoading(true);
     try {
-      const res = await fetch("/api/studysessions");
-      if (res.ok) {
-        const data = await res.json();
-        setSessions(data);
+      // Parallel Fetching
+      const [sessionsRes, tasksRes, examsRes, profileRes] = await Promise.all([
+        fetch("/api/studysessions"),
+        fetch("/api/tasks"),
+        fetch("/api/exams"),
+        fetch("/api/auth/profile")
+      ]);
+
+      if (sessionsRes.ok) setSessions(await sessionsRes.json());
+      if (tasksRes.ok) setTasks(await tasksRes.json());
+      if (examsRes.ok) setExams(await examsRes.json());
+      if (profileRes.ok) {
+        const profile = await profileRes.json();
+        setCourses(profile.courses || []);
       }
     } catch (error) {
-      console.error("Failed to fetch sessions", error);
+      console.error("Failed to fetch data", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchCourses = async () => {
-    try {
-      const res = await fetch("/api/auth/profile");
-      if (res.ok) {
-        const data = await res.json();
-        setCourses(data.courses || []);
-      }
-    } catch (error) {
-      console.error("Failed to fetch courses", error);
-    }
-  };
-
   useEffect(() => {
-    fetchSessions();
-    fetchCourses();
+    fetchData();
   }, []);
+
+  // -- Handlers --
 
   const handleTaskSubmit = async (e) => {
     e.preventDefault();
     setMessage("Saving task...");
-
     try {
       const res = await fetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(taskForm)
       });
-
       if (res.ok) {
-        setMessage("Task added successfully!");
+        setMessage("Task added!");
         setTaskForm({ title: "", courseName: "", deadline: "", estimatedHours: 2, priority: "medium" });
-        setTimeout(() => setMessage(""), 3000);
-      } else {
-        const data = await res.json();
-        setMessage(`Error: ${data.message}`);
+        setShowTaskForm(false);
+        fetchData(); // Refresh all
       }
     } catch (error) {
       setMessage("Failed to add task");
@@ -86,276 +87,328 @@ export default function PlannerPage() {
   const handleExamSubmit = async (e) => {
     e.preventDefault();
     setMessage("Saving exam...");
-
     try {
       const res = await fetch("/api/exams", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(examForm)
       });
-
       if (res.ok) {
-        setMessage("Exam added successfully!");
+        setMessage("Exam added!");
         setExamForm({ courseName: "", examDate: "", syllabusWeight: 50 });
-        setTimeout(() => setMessage(""), 3000);
-      } else {
-        const data = await res.json();
-        setMessage(`Error: ${data.message}`);
+        setShowExamForm(false);
+        fetchData(); // Refresh all
       }
     } catch (error) {
       setMessage("Failed to add exam");
     }
   };
 
+  const handleTaskComplete = async (taskId) => {
+    try {
+      const res = await fetch(`/api/tasks/${taskId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "completed" })
+      });
+      if (res.ok) {
+        setMessage("Task completed!");
+        fetchData();
+      }
+    } catch (error) {
+      console.error("Failed to complete task", error);
+    }
+  };
+
+  const handleTaskDelete = async (taskId) => {
+    if (!confirm("Are you sure you want to delete this task?")) return;
+    try {
+      const res = await fetch(`/api/tasks/${taskId}`, {
+        method: "DELETE"
+      });
+      if (res.ok) {
+        setMessage("Task deleted!");
+        fetchData();
+      }
+    } catch (error) {
+      console.error("Failed to delete task", error);
+    }
+  };
+
+  // -- Helpers --
+
+  const getDates = () => {
+    const dates = [];
+    const today = new Date();
+    for (let i = 0; i < 14; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() + i);
+      dates.push(d);
+    }
+    return dates;
+  };
+
+  const isSameDay = (d1, d2) => {
+    return d1.getDate() === d2.getDate() &&
+      d1.getMonth() === d2.getMonth() &&
+      d1.getFullYear() === d2.getFullYear();
+  };
+
+  const filteredSessions = sessions.filter(s => isSameDay(new Date(s.startTime), selectedDate));
+
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6">
+
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Smart Planner</h1>
-          <p className="text-gray-600 dark:text-gray-400">Manage your academic workload</p>
+          <p className="text-gray-600 dark:text-gray-400">Balance your academic life</p>
         </div>
-
-        {/* Tab Navigation */}
-        <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
-          <button
-            onClick={() => setActiveTab("plan")}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition ${activeTab === "plan" ? "bg-white dark:bg-gray-700 shadow text-indigo-600 dark:text-indigo-300" : "text-gray-500 hover:text-gray-700"}`}
-          >
-            My Plan
-          </button>
-          <button
-            onClick={() => setActiveTab("addTask")}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition ${activeTab === "addTask" ? "bg-white dark:bg-gray-700 shadow text-indigo-600 dark:text-indigo-300" : "text-gray-500 hover:text-gray-700"}`}
-          >
-            + Add Task
-          </button>
-          <button
-            onClick={() => setActiveTab("addExam")}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition ${activeTab === "addExam" ? "bg-white dark:bg-gray-700 shadow text-indigo-600 dark:text-indigo-300" : "text-gray-500 hover:text-gray-700"}`}
-          >
-            + Add Exam
-          </button>
-        </div>
+        <SchedulerTrigger onPlanGenerated={fetchData} />
       </div>
 
-      {/* VIEW PLAN TAB */}
-      {activeTab === "plan" && (
-        <>
-          <div className="flex justify-end">
-            <SchedulerTrigger onPlanGenerated={fetchSessions} />
-          </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold mb-4 border-b pb-2">Upcoming Study Sessions</h2>
+        {/* LEFT COLUMN: Workload (Tasks & Exams) */}
+        <div className="lg:col-span-1 space-y-6">
 
-            {loading ? (
-              <p className="text-center py-4">Loading schedule...</p>
-            ) : sessions.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <p>No study sessions scheduled.</p>
-                <p className="text-sm mt-2">1. Add Tasks or Exams using the tabs above.</p>
-                <p className="text-sm">2. Click "Generate" to let AI plan your week!</p>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {/* Group by Date Logic */}
-                {Object.entries(sessions.reduce((groups, session) => {
-                  const date = new Date(session.startTime).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-                  if (!groups[date]) groups[date] = [];
-                  groups[date].push(session);
-                  return groups;
-                }, {})).map(([date, dateSessions]) => (
-                  <div key={date}>
-                    <h3 className="text-sm font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide mb-3 bg-indigo-50 dark:bg-indigo-900/20 py-1 px-2 rounded w-fit">
-                      {date}
-                    </h3>
-                    <div className="space-y-3">
-                      {dateSessions.map((session) => (
-                        <div
-                          key={session._id}
-                          className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white dark:bg-gray-700 rounded-xl border-l-4 border-indigo-500 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden"
-                        >
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-xs font-bold text-gray-500 bg-gray-100 dark:bg-gray-600 px-2 py-0.5 rounded">
-                                {new Date(session.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(session.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              </span>
-                              <span className="text-xs font-medium text-indigo-600 dark:text-indigo-300">
-                                {session.actualDuration} min session
-                              </span>
-                            </div>
-                            <h4 className="font-semibold text-gray-900 dark:text-white text-lg">
-                              {session.title}
-                            </h4>
-                            {session.taskId && session.taskId.difficulty && (
-                              <span className="text-xs text-gray-500 dark:text-gray-400 mt-1 block">
-                                Difficulty: {session.taskId.difficulty}
-                              </span>
-                            )}
-                          </div>
+          {/* Workload Header & Add Buttons */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4">
+            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-800 dark:text-white">
+              <FiBookOpen className="text-indigo-500" /> Pending Workload
+            </h2>
 
-                          <div className="mt-3 sm:mt-0 flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center text-indigo-600 dark:text-indigo-300">
-                              <FiBookOpen size={14} />
-                            </div>
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              <button
+                onClick={() => setShowTaskForm(!showTaskForm)}
+                className="flex items-center justify-center gap-2 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300 rounded-lg hover:bg-indigo-100 transition text-sm font-medium"
+              >
+                <FiPlus /> Add Task
+              </button>
+              <button
+                onClick={() => setShowExamForm(!showExamForm)}
+                className="flex items-center justify-center gap-2 py-2 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-300 rounded-lg hover:bg-red-100 transition text-sm font-medium"
+              >
+                <FiPlus /> Add Exam
+              </button>
+            </div>
+
+            {/* FORMS (Conditional) */}
+            {showTaskForm && (
+              <form onSubmit={handleTaskSubmit} className="space-y-3 mb-4 p-4 border rounded-xl bg-gray-50 dark:bg-gray-700/50">
+                <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">New Assignment</h3>
+                <input className="w-full p-2 text-sm border rounded-lg bg-white dark:bg-gray-800" placeholder="Title" value={taskForm.title} onChange={e => setTaskForm({ ...taskForm, title: e.target.value })} required />
+                <select className="w-full p-2 text-sm border rounded-lg bg-white dark:bg-gray-800" value={taskForm.courseName} onChange={e => setTaskForm({ ...taskForm, courseName: e.target.value })} required>
+                  <option value="">Select Course</option>
+                  {courses.map((c, i) => <option key={i} value={c}>{c}</option>)}
+                </select>
+                <input type="datetime-local" className="w-full p-2 text-sm border rounded-lg bg-white dark:bg-gray-800" value={taskForm.deadline} onChange={e => setTaskForm({ ...taskForm, deadline: e.target.value })} required />
+                <input type="number" placeholder="Est. Hours" className="w-full p-2 text-sm border rounded-lg bg-white dark:bg-gray-800" value={taskForm.estimatedHours} onChange={e => setTaskForm({ ...taskForm, estimatedHours: e.target.value })} required />
+                <select className="w-full p-2 text-sm border rounded-lg bg-white dark:bg-gray-800" value={taskForm.priority} onChange={e => setTaskForm({ ...taskForm, priority: e.target.value })} required>
+                  <option value="medium">Medium Priority</option>
+                  <option value="high">High Priority</option>
+                  <option value="low">Low Priority</option>
+                </select>
+                <button type="submit" className="w-full py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition">Save Task</button>
+              </form>
+            )}
+
+            {showExamForm && (
+              <form onSubmit={handleExamSubmit} className="space-y-3 mb-4 p-4 border rounded-xl bg-gray-50 dark:bg-gray-700/50">
+                <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">New Exam</h3>
+                <select className="w-full p-2 text-sm border rounded-lg bg-white dark:bg-gray-800" value={examForm.courseName} onChange={e => setExamForm({ ...examForm, courseName: e.target.value })} required>
+                  <option value="">Select Course</option>
+                  {courses.map((c, i) => <option key={i} value={c}>{c}</option>)}
+                </select>
+                <input type="datetime-local" className="w-full p-2 text-sm border rounded-lg bg-white dark:bg-gray-800" value={examForm.examDate} onChange={e => setExamForm({ ...examForm, examDate: e.target.value })} required />
+                <input type="number" placeholder="Weight %" className="w-full p-2 text-sm border rounded-lg bg-white dark:bg-gray-800" value={examForm.syllabusWeight} onChange={e => setExamForm({ ...examForm, syllabusWeight: e.target.value })} required />
+                <button type="submit" className="w-full py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition">Save Exam</button>
+              </form>
+            )}
+
+            {/* LISTS */}
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-xs font-bold text-gray-500 uppercase mb-3 px-1">Upcoming Exams</h3>
+                {exams.length === 0 ? <p className="text-sm text-gray-400 italic px-1">No upcoming exams.</p> : (
+                  <div className="space-y-3">
+                    {exams.map(exam => (
+                      <div key={exam._id} className="p-3 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg shadow-sm flex justify-between items-center group hover:border-red-200 transition">
+                        <div className="flex items-center gap-3">
+                          <div className="w-1 h-8 bg-red-500 rounded-full"></div>
+                          <div>
+                            <p className="font-semibold text-sm text-gray-800 dark:text-gray-200">{exam.courseId?.name || "Exam"}</p>
+                            <p className="text-xs text-gray-500">{new Date(exam.examDate).toLocaleDateString()}</p>
                           </div>
                         </div>
-                      ))}
-                    </div>
+                        <span className="text-xs font-mono bg-red-50 text-red-600 px-2 py-1 rounded-full border border-red-100">{exam.syllabusWeight}%</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
+              </div>
+
+              <div>
+                <h3 className="text-xs font-bold text-gray-500 uppercase mb-3 px-1">Pending Tasks</h3>
+                {tasks.length === 0 ? <p className="text-sm text-gray-400 italic px-1">No pending tasks.</p> : (
+                  <div className="space-y-3">
+                    {tasks.map(task => (
+                      <div key={task._id} className="relative p-3 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg shadow-sm hover:border-indigo-200 transition group">
+
+                        {/* Actions (Always Visible) */}
+                        <div className="absolute top-2 right-2 flex gap-1 z-20">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleTaskComplete(task._id); }}
+                            title="Mark as Completed"
+                            className="text-gray-400 hover:text-green-500 hover:bg-green-50 p-1 rounded transition-colors"
+                          >
+                            <FiCheckCircle size={15} />
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleTaskDelete(task._id); }}
+                            title="Delete Task"
+                            className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1 rounded transition-colors"
+                          >
+                            <FiAlertCircle size={15} />
+                          </button>
+                        </div>
+
+                        <div className="flex justify-between items-start mb-1 pr-14">
+                          <p className="font-semibold text-sm text-gray-800 dark:text-gray-200 truncate">{task.title}</p>
+                        </div>
+
+                        <div className="flex justify-between items-center mt-2">
+                          <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded border ${task.priority === 'high' ? 'bg-red-50 text-red-600 border-red-100' : 'bg-gray-50 text-gray-600 border-gray-100'}`}>
+                            {task.priority || 'Normal'}
+                          </span>
+                          <div className="text-xs text-gray-500 flex items-center gap-2">
+                            <span className="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-600 dark:text-gray-300">
+                              {task.courseId?.name}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-end items-center mt-2 text-xs text-gray-500 gap-3">
+                          <span className="flex items-center gap-1"><FiClock size={10} /> {task.estimatedHours}h</span>
+                          <span>{new Date(task.deadline).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN: Schedule View */}
+        <div className="lg:col-span-2 space-y-6">
+
+          {/* Date Picker */}
+          <div className="flex overflow-x-auto pb-2 gap-3 scrollbar-hide">
+            {getDates().map((date, i) => {
+              const isSelected = isSameDay(date, selectedDate);
+              return (
+                <button
+                  key={i}
+                  onClick={() => setSelectedDate(date)}
+                  className={`flex-shrink-0 flex flex-col items-center justify-center w-14 h-18 py-3 rounded-2xl border transition-all duration-200 ${isSelected ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-200 transform -translate-y-1' : 'bg-white dark:bg-gray-800 border-transparent text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`}
+                >
+                  <span className="text-[10px] font-bold uppercase tracking-wider">{date.toLocaleDateString('en-US', { weekday: 'short' })}</span>
+                  <span className="text-xl font-bold mt-1">{date.getDate()}</span>
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Daily Timeline */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 min-h-[500px] relative">
+            <div className="flex justify-between items-end mb-8 border-b border-gray-50 pb-4">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {selectedDate.toLocaleDateString('en-US', { weekday: 'long' })}
+                </h2>
+                <p className="text-gray-500 dark:text-gray-400 mt-1">
+                  {selectedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                </p>
+              </div>
+              <div className="text-sm font-medium text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">
+                {filteredSessions.length} Sessions
+              </div>
+            </div>
+
+            {loading ? (
+              <div className="text-center py-20 text-gray-400 animate-pulse">Loading schedule...</div>
+            ) : filteredSessions.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                  <FiCalendar size={24} className="text-gray-300" />
+                </div>
+                <p className="text-gray-900 font-medium text-lg">No sessions planned</p>
+                <p className="text-sm text-gray-400 mt-2 max-w-xs mx-auto">Enjoy your free time, or add some tasks to get started!</p>
+              </div>
+            ) : (
+              <div className="relative border-l border-indigo-100 dark:border-gray-700 ml-3 space-y-6">
+                {filteredSessions.map((session, idx) => {
+                  const startTime = new Date(session.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+                  const endTime = new Date(session.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+
+                  return (
+                    <div key={session._id} className="relative group pl-8">
+                      {/* Timeline Dot */}
+                      <div className="absolute -left-[5px] top-5 w-2.5 h-2.5 rounded-full ring-4 ring-white dark:ring-gray-800 bg-indigo-500 z-10" />
+
+                      {/* Card */}
+                      <div className="group-hover:translate-x-1 transition-transform duration-200">
+                        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-indigo-200 dark:hover:border-indigo-900 hover:shadow-md transition-all p-5">
+
+                          {/* Time & Duration Header */}
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-xl font-light text-indigo-600 dark:text-indigo-400 tracking-tight">
+                                {startTime}
+                              </span>
+                              <span className="text-gray-300 text-sm">—</span>
+                              <span className="font-mono text-xl font-light text-indigo-600 dark:text-indigo-400 tracking-tight">
+                                {endTime}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wider bg-gray-50 px-2 py-1 rounded">
+                              <FiClock size={12} /> {session.actualDuration}m
+                            </div>
+                          </div>
+
+                          {/* Content */}
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100">
+                                {session.title}
+                              </h3>
+                              {/* Difficulty Badge */}
+                              {session.taskId && session.taskId.difficulty && (
+                                <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border border-gray-100 text-gray-500">
+                                  Difficulty: {session.taskId.difficulty}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Action Icon (Optional decorative) */}
+                            <div className="text-gray-200 group-hover:text-indigo-200 transition">
+                              <FiChevronRight size={20} />
+                            </div>
+                          </div>
+
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
-        </>
-      )}
 
-      {/* ADD TASK FORM */}
-      {activeTab === "addTask" && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 max-w-2xl mx-auto">
-          <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
-            <FiBookOpen /> Add New Assignment
-          </h2>
-
-          <form onSubmit={handleTaskSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Title</label>
-              <input
-                type="text"
-                required
-                className="w-full border rounded p-2 bg-transparent"
-                placeholder="e.g. History Essay"
-                value={taskForm.title}
-                onChange={e => setTaskForm({ ...taskForm, title: e.target.value })}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Course</label>
-                <select
-                  required
-                  className="w-full border rounded p-2 bg-transparent"
-                  value={taskForm.courseName}
-                  onChange={e => setTaskForm({ ...taskForm, courseName: e.target.value })}
-                >
-                  <option value="">Select Course</option>
-                  {courses.map((c, i) => (
-                    <option key={i} value={c}>{c}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Deadline</label>
-                <input
-                  type="datetime-local"
-                  required
-                  className="w-full border rounded p-2 bg-transparent"
-                  value={taskForm.deadline}
-                  onChange={e => setTaskForm({ ...taskForm, deadline: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Est. Hours</label>
-                <input
-                  type="number"
-                  min="0.5"
-                  step="0.5"
-                  required
-                  className="w-full border rounded p-2 bg-transparent"
-                  value={taskForm.estimatedHours}
-                  onChange={e => setTaskForm({ ...taskForm, estimatedHours: parseFloat(e.target.value) })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Priority</label>
-                <select
-                  className="w-full border rounded p-2 bg-transparent"
-                  value={taskForm.priority}
-                  onChange={e => setTaskForm({ ...taskForm, priority: e.target.value })}
-                >
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                </select>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              className="w-full bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700 transition"
-            >
-              Add Task
-            </button>
-          </form>
-          {message && <p className="mt-4 text-center text-sm">{message}</p>}
         </div>
-      )}
-
-      {/* ADD EXAM FORM */}
-      {activeTab === "addExam" && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 max-w-2xl mx-auto">
-          <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
-            <FiCalendar /> Add Upcoming Exam
-          </h2>
-
-          <form onSubmit={handleExamSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Course</label>
-              <select
-                required
-                className="w-full border rounded p-2 bg-transparent"
-                value={examForm.courseName}
-                onChange={e => setExamForm({ ...examForm, courseName: e.target.value })}
-              >
-                <option value="">Select Course</option>
-                {courses.map((c, i) => (
-                  <option key={i} value={c}>{c}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Exam Date</label>
-                <input
-                  type="datetime-local"
-                  required
-                  className="w-full border rounded p-2 bg-transparent"
-                  value={examForm.examDate}
-                  onChange={e => setExamForm({ ...examForm, examDate: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Syllabus Weight (%)</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  required
-                  className="w-full border rounded p-2 bg-transparent"
-                  value={examForm.syllabusWeight}
-                  onChange={e => setExamForm({ ...examForm, syllabusWeight: parseInt(e.target.value) })}
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              className="w-full bg-red-600 text-white py-2 rounded hover:bg-red-700 transition"
-            >
-              Add Exam
-            </button>
-          </form>
-          {message && <p className="mt-4 text-center text-sm">{message}</p>}
-        </div>
-      )}
-
-      <div className="mt-8 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg text-sm text-blue-800 dark:text-blue-200">
-        <strong>How it works:</strong> Add your pending tasks and upcoming exams here. The AI Scheduler will then automatically allocate time for them in your free slots (defined in Timetable).
       </div>
     </div>
   );

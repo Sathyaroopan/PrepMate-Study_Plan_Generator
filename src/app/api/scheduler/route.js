@@ -20,7 +20,10 @@ export async function POST(req) {
         const body = await req.json();
         const days = body.days || 7;
 
-        const sessions = await generateStudyPlan(decoded.id, new Date(), days);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Start of day
+
+        const sessions = await generateStudyPlan(decoded.id, today, days);
 
         return NextResponse.json({
             message: "Study plan generated successfully",
