@@ -418,7 +418,7 @@ export async function generateStudyPlan(userId, startDate = new Date()) {
 
 // Helpers
 
-function calculatePriority(p) {
+export function calculatePriority(p) {
     if (p === 'high') return 3;
     if (p === 'medium') return 2;
     return 1;
@@ -470,7 +470,7 @@ async function getBusyBlocks(userId, date, timetable, dayStart, dayEnd) {
     return merged;
 }
 
-function calculateFreeIntervals(dayStart, dayEnd, busyBlocks) {
+export function calculateFreeIntervals(dayStart, dayEnd, busyBlocks) {
     const free = [];
     let cursor = dayStart;
 
@@ -488,7 +488,7 @@ function calculateFreeIntervals(dayStart, dayEnd, busyBlocks) {
     return free.filter(i => (i.end - i.start) / 60000 >= 30);
 }
 
-function parseTime(baseDate, timeStr) {
+export function parseTime(baseDate, timeStr) {
     const [h, m] = timeStr.split(":").map(Number);
     const d = new Date(baseDate);
     d.setHours(h, m, 0, 0);
