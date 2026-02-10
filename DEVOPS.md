@@ -22,36 +22,6 @@ The application follows a modern serverless architecture, minimizing operational
 | **Styling** | Tailwind CSS | Utility-first CSS framework for rapid UI development. |
 | **Testing** | Jest + React Testing Library | Comprehensive testing suite for reliability. |
 
-### 2.2 Component Diagram
-
-```mermaid
-graph TD
-    User((User))
-    
-    subgraph "Client Layer"
-        Browser[Web Browser / Mobile]
-    end
-
-    subgraph "Vercel Edge Network"
-        CDN[Content Delivery Network]
-        EdgeFunc[Edge Functions (Middleware)]
-        Serverless[Serverless Functions (API)]
-    end
-
-    subgraph "Data Layer (MongoDB Atlas)"
-        PrimaryDB[(Primary Replica)]
-        SecondaryDB[(Secondary Replica)]
-    end
-
-    User --> Browser
-    Browser -->|HTTPS| CDN
-    CDN --> EdgeFunc
-    EdgeFunc --> Serverless
-    Serverless -->|Mongoose ODM| PrimaryDB
-    PrimaryDB -.->|Replication| SecondaryDB
-```
-
----
 
 ## 3. Source Code Management (SCM) Strategy
 
