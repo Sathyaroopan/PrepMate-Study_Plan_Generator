@@ -86,7 +86,7 @@ export default function DashboardPage() {
             {greeting}, <span className="text-blue-600 dark:text-blue-400">{user?.name || "Student"}</span>! 👋
           </h1>
           <p className="text-sm opacity-60 max-w-lg leading-relaxed">
-            "Success is the sum of small efforts, repeated day in and day out."
+            &quot;Success is the sum of small efforts, repeated day in and day out.&quot;
             You have <strong className="text-[var(--text)]">{stats.pending} tasks</strong> on your plate.
           </p>
         </div>

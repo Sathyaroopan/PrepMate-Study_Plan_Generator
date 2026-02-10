@@ -10,6 +10,7 @@ export default function Navbar({ userName }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
     const storedTheme = localStorage.getItem("theme");
     const isDark =
@@ -45,7 +46,7 @@ export default function Navbar({ userName }) {
           className="block dark:hidden h-8 w-auto"
           priority
         />
-        
+
         <Image
           src="/logo_text_dark.png"
           alt="PrepMate Logo"
@@ -63,9 +64,8 @@ export default function Navbar({ userName }) {
           className="p-2 flex justify-center cursor-pointer rounded-full bg-secondary-btn text-secondary-btn-text hover:bg-secondary-btn-hover transition-all"
         >
           <span
-            className={`inline-block transition-transform duration-500 ${
-              darkMode ? "rotate-180" : "rotate-0"
-            }`}
+            className={`inline-block transition-transform duration-500 ${darkMode ? "rotate-180" : "rotate-0"
+              }`}
           >
             {darkMode ? (
               <MdLightMode size={20} className="text-yellow-400" />
