@@ -157,7 +157,12 @@ export default function TasksPage() {
                     <div className="flex flex-col">
                       <span className="text-[10px] uppercase opacity-40 font-bold">Deadline</span>
                       <span className="text-sm font-medium">
-                        {new Date(task.deadline).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                        {new Date(task.deadline).toLocaleString(undefined, {
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
                       </span>
                     </div>
                     <div className="w-[1px] h-8 bg-[var(--border)]" />
@@ -214,7 +219,7 @@ export default function TasksPage() {
                   <div className="space-y-2">
                     <label className="text-[11px] font-black uppercase opacity-60 tracking-wider">Deadline</label>
                     <input
-                      type="date"
+                      type="datetime-local"
                       value={deadline}
                       onChange={(e) => setDeadline(e.target.value)}
                       className="w-full bg-[var(--s-btn)] border border-[var(--border)] rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[var(--p-btn)] transition-all text-sm"

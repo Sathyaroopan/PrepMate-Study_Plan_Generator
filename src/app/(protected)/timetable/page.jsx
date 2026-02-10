@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { Sparkles, Settings2, Plus, X, Save } from "lucide-react";
 
 const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 
@@ -19,298 +20,199 @@ export default function TimetableEditor() {
   const [availableCourses, setAvailableCourses] = useState([]);
   const [loadingCourses, setLoadingCourses] = useState(true);
   const [showSlotManager, setShowSlotManager] = useState(false);
-
-  // New slot form
   const [newSlot, setNewSlot] = useState({ startTime: "", endTime: "", isBreak: false });
+  const [saving, setSaving] = useState(false);
 
-  // Load user's courses from profile
+  // Load Data
   useEffect(() => {
-    const loadCourses = async () => {
+    const init = async () => {
       try {
-        const res = await fetch("/api/auth/profile", {
-          method: "GET",
-          credentials: "include",
-        });
+        const [profileRes, timetableRes] = await Promise.all([
+          fetch("/api/auth/profile", { credentials: "include" }),
+          fetch("/api/auth/timetable", { credentials: "include" })
+        ]);
 
-        if (res.ok) {
-          const data = await res.json();
-          setAvailableCourses(data.courses || []);
+        if (profileRes.ok) {
+          const profileData = await profileRes.json();
+          setAvailableCourses(profileData.courses || []);
+        }
+        if (timetableRes.ok) {
+          const timetableData = await timetableRes.json();
+          if (timetableData.slots) setSlots(timetableData.slots);
+          if (timetableData.timetable) setTimetable(timetableData.timetable);
         }
       } catch (err) {
-        console.error("Failed to load courses", err);
+        console.error("Initialization error", err);
       } finally {
         setLoadingCourses(false);
       }
     };
-
-    loadCourses();
-  }, []);
-
-  useEffect(() => {
-    const loadTimetable = async () => {
-      try {
-        const res = await fetch("/api/auth/timetable", {
-          method: "GET",
-          credentials: "include",
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setSlots(data.slots || DEFAULT_SLOTS);
-          setTimetable(data.timetable || {});
-        }
-      } catch (err) {
-        console.error("Failed to load timetable", err);
-      }
-    };
-
-    loadTimetable();
+    init();
   }, []);
 
   const handleChange = (day, slotId, value) => {
     setTimetable((prev) => ({
       ...prev,
-      [day]: {
-        ...prev[day],
-        [slotId]: value,
-      },
+      [day]: { ...prev[day], [slotId]: value },
     }));
   };
 
   const handleSave = async () => {
-    await fetch("/api/auth/timetable", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ slots, timetable }),
-    });
-
-    alert("Timetable saved");
+    setSaving(true);
+    try {
+      const res = await fetch("/api/auth/timetable", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ slots, timetable }),
+      });
+      if (res.ok) alert("Schedule updated successfully!");
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const addSlot = () => {
-    if (!newSlot.startTime || !newSlot.endTime) {
-      alert("Please enter start and end times");
-      return;
-    }
-
-    const nextId = Math.max(...slots.map(s => s.id), 0) + 1;
-    const updatedSlots = [...slots, { id: nextId, ...newSlot }];
-
-    // Sort by start time
-    updatedSlots.sort((a, b) => a.startTime.localeCompare(b.startTime));
-
+    if (!newSlot.startTime || !newSlot.endTime) return;
+    const nextId = Math.max(...slots.map((s) => s.id), 0) + 1;
+    const updatedSlots = [...slots, { id: nextId, ...newSlot }].sort((a, b) =>
+      a.startTime.localeCompare(b.startTime)
+    );
     setSlots(updatedSlots);
     setNewSlot({ startTime: "", endTime: "", isBreak: false });
   };
 
   const removeSlot = (slotId) => {
-    setSlots(slots.filter(s => s.id !== slotId));
-
-    // Also remove timetable entries for this slot
-    const updatedTimetable = { ...timetable };
-    days.forEach(day => {
-      if (updatedTimetable[day]) {
-        delete updatedTimetable[day][slotId];
-      }
-    });
-    setTimetable(updatedTimetable);
+    setSlots(slots.filter((s) => s.id !== slotId));
   };
 
-  const toggleBreak = (slotId) => {
-    setSlots(slots.map(s =>
-      s.id === slotId ? { ...s, isBreak: !s.isBreak } : s
-    ));
-
-    // Clear timetable entries for break slots
-    const slot = slots.find(s => s.id === slotId);
-    if (!slot.isBreak) { // Will become a break
-      const updatedTimetable = { ...timetable };
-      days.forEach(day => {
-        if (updatedTimetable[day]) {
-          delete updatedTimetable[day][slotId];
-        }
-      });
-      setTimetable(updatedTimetable);
-    }
-  };
-
-  const updateSlotTime = (slotId, field, value) => {
-    setSlots(slots.map(s =>
-      s.id === slotId ? { ...s, [field]: value } : s
-    ));
-  };
-
-  const formatSlotLabel = (slot) => {
-    return `${slot.startTime}–${slot.endTime}`;
-  };
-
-  if (loadingCourses) {
-    return <div className="p-6">Loading subjects...</div>;
-  }
+  if (loadingCourses) return (
+    <div className="flex items-center justify-center min-h-screen text-text opacity-50 font-medium">
+      Loading your workspace...
+    </div>
+  );
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold">Weekly Timetable</h2>
-        <button
-          onClick={() => setShowSlotManager(!showSlotManager)}
-          className="px-3 py-1.5 rounded text-sm bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-        >
-          ⚙️ {showSlotManager ? "Hide Slot Settings" : "Manage Time Slots"}
-        </button>
-      </div>
-
-      {/* Slot Manager Panel */}
-      {showSlotManager && (
-        <div className="mb-6 p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
-          <h3 className="font-semibold mb-3">Time Slots Configuration</h3>
-
-          {/* Existing Slots */}
-          <div className="space-y-2 mb-4">
-            {slots.map((slot) => (
-              <div key={slot.id} className="flex items-center gap-3 p-2 bg-white dark:bg-gray-700 rounded border">
-                <input
-                  type="time"
-                  value={slot.startTime}
-                  onChange={(e) => updateSlotTime(slot.id, "startTime", e.target.value)}
-                  className="border rounded px-2 py-1 text-sm bg-transparent"
-                />
-                <span>to</span>
-                <input
-                  type="time"
-                  value={slot.endTime}
-                  onChange={(e) => updateSlotTime(slot.id, "endTime", e.target.value)}
-                  className="border rounded px-2 py-1 text-sm bg-transparent"
-                />
-                <label className="flex items-center gap-1 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={slot.isBreak}
-                    onChange={() => toggleBreak(slot.id)}
-                    className="w-4 h-4"
-                  />
-                  Break
-                </label>
-                <button
-                  onClick={() => removeSlot(slot.id)}
-                  className="ml-auto text-red-500 hover:text-red-700 px-2"
-                >
-                  ✕
-                </button>
-              </div>
-            ))}
+    <div className="w-full max-w-full overflow-x-hidden bg-bg text-text min-h-screen transition-colors duration-300">
+      <div className="max-w-7xl mx-auto p-4 md:p-10 space-y-8">
+        
+        {/* Header */}
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-[var(--border)] pb-8">
+          <div className="space-y-1">
+            <h1 className="text-3xl font-bold tracking-tight">Weekly Schedule</h1>
+            <div className="flex items-center gap-2 text-sm text-primary-btn font-semibold">
+              <Sparkles size={14} />
+              <span>AutoPilot Enabled</span>
+            </div>
           </div>
+          <button
+            onClick={() => setShowSlotManager(!showSlotManager)}
+            className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-secondary-btn text-secondary-btn-text hover:bg-secondary-btn-hover transition-all text-sm font-medium border border-[var(--border)]"
+          >
+            <Settings2 size={16} />
+            {showSlotManager ? "Hide Settings" : "Configure Slots"}
+          </button>
+        </header>
 
-          {/* Add New Slot */}
-          <div className="flex items-center gap-3 p-2 border-t pt-4">
-            <input
-              type="time"
-              value={newSlot.startTime}
-              onChange={(e) => setNewSlot({ ...newSlot, startTime: e.target.value })}
-              placeholder="Start"
-              className="border rounded px-2 py-1 text-sm bg-transparent"
-            />
-            <span>to</span>
-            <input
-              type="time"
-              value={newSlot.endTime}
-              onChange={(e) => setNewSlot({ ...newSlot, endTime: e.target.value })}
-              placeholder="End"
-              className="border rounded px-2 py-1 text-sm bg-transparent"
-            />
-            <label className="flex items-center gap-1 text-sm">
-              <input
-                type="checkbox"
-                checked={newSlot.isBreak}
-                onChange={(e) => setNewSlot({ ...newSlot, isBreak: e.target.checked })}
-                className="w-4 h-4"
-              />
-              Break
-            </label>
-            <button
-              onClick={addSlot}
-              className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-sm"
-            >
-              + Add Slot
-            </button>
+        {/* Slot Config Panel */}
+        {showSlotManager && (
+          <section className="p-6 border border-[var(--border)] rounded-2xl bg-secondary-btn/10 backdrop-blur-md animate-in fade-in slide-in-from-top-4 duration-300">
+            <h3 className="font-bold mb-4 text-lg flex items-center gap-2">
+              <Settings2 size={18} /> Time Slot Configuration
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+              {slots.map((slot) => (
+                <div key={slot.id} className="flex items-center gap-2 p-3 bg-bg border border-[var(--border)] rounded-xl shadow-sm group">
+                  <div className="text-xs font-mono font-bold opacity-40">{slot.startTime}</div>
+                  <div className="h-px w-2 bg-[var(--border)]"></div>
+                  <div className="text-xs font-mono font-bold opacity-40">{slot.endTime}</div>
+                  <button onClick={() => removeSlot(slot.id)} className="ml-auto text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity p-1">
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+            
+            <div className="flex flex-wrap items-center gap-4 pt-4 border-t border-[var(--border)]">
+              <div className="flex items-center gap-2 bg-bg border border-[var(--border)] px-4 py-2 rounded-xl">
+                <input type="time" value={newSlot.startTime} onChange={e => setNewSlot({...newSlot, startTime: e.target.value})} className="bg-transparent outline-none text-sm cursor-pointer" />
+                <span className="opacity-20">—</span>
+                <input type="time" value={newSlot.endTime} onChange={e => setNewSlot({...newSlot, endTime: e.target.value})} className="bg-transparent outline-none text-sm cursor-pointer" />
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer group">
+                <input type="checkbox" checked={newSlot.isBreak} onChange={e => setNewSlot({...newSlot, isBreak: e.target.checked})} className="w-4 h-4 rounded border-[var(--border)] accent-primary-btn" />
+                <span className="text-sm font-medium opacity-70 group-hover:opacity-100 transition-opacity">Break</span>
+              </label>
+              <button onClick={addSlot} className="px-5 py-2 bg-primary-btn text-primary-btn-text rounded-xl text-sm font-bold hover:bg-primary-btn-hover flex items-center gap-2 transition-all">
+                <Plus size={16} /> Add
+              </button>
+            </div>
+          </section>
+        )}
+
+        {/* Main Grid Container */}
+        <div className="rounded-2xl border border-[var(--border)] bg-bg shadow-2xl shadow-black/5 overflow-hidden">
+          <div className="overflow-x-auto scrollbar-hide">
+            {/* Table min-width ensures it doesn't collapse below readable size */}
+            <table className="w-full border-collapse min-w-[850px]">
+              <thead>
+                <tr className="bg-secondary-btn/30">
+                  <th className="p-5 text-left text-xs font-black uppercase tracking-widest opacity-40 border-b border-r border-[var(--border)] w-32">Timeline</th>
+                  {slots.map((slot) => (
+                    <th key={slot.id} className={`p-5 border-b border-r border-[var(--border)] ${slot.isBreak ? 'bg-amber-50/30 dark:bg-amber-900/5' : ''}`}>
+                      <div className="text-sm font-black tracking-tighter">{slot.startTime} — {slot.endTime}</div>
+                      {slot.isBreak && <span className="text-[9px] font-bold text-amber-600 dark:text-amber-500 uppercase tracking-widest">Interval</span>}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {days.map((day) => (
+                  <tr key={day} className="group hover:bg-secondary-btn/5 transition-colors">
+                    <td className="p-5 font-bold border-r border-b border-[var(--border)] bg-secondary-btn/10 group-hover:bg-secondary-btn/20 transition-colors">
+                      {day}
+                    </td>
+                    {slots.map((slot) => (
+                      <td key={slot.id} className={`p-2 border-r border-b border-[var(--border)] transition-colors ${slot.isBreak ? 'bg-amber-50/10 dark:bg-amber-900/5' : ''}`}>
+                        {slot.isBreak ? (
+                          <div className="flex justify-center py-4">
+                            <div className="h-1 w-6 bg-amber-200 dark:bg-amber-800/40 rounded-full"></div>
+                          </div>
+                        ) : (
+                          <select
+                            value={timetable[day]?.[slot.id] || ""}
+                            onChange={(e) => handleChange(day, slot.id, e.target.value)}
+                            className="w-full bg-transparent border border-transparent hover:border-[var(--border)] rounded-lg px-3 py-3 text-sm focus:bg-secondary-btn/20 focus:ring-0 outline-none transition-all cursor-pointer appearance-none font-medium"
+                          >
+                            <option value="">—</option>
+                            {availableCourses.map((course, i) => (
+                              <option key={i} value={course}>{course}</option>
+                            ))}
+                          </select>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
-      )}
 
-      {/* Timetable Grid */}
-      <div className="overflow-x-auto">
-        <table className="border-collapse border w-full text-center min-w-[800px]">
-          <thead>
-            <tr>
-              <th className="border p-2 bg-gray-100 dark:bg-gray-700">Day / Time</th>
-              {slots.map((slot) => (
-                <th
-                  key={slot.id}
-                  className={`border p-2 ${slot.isBreak ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-gray-100 dark:bg-gray-700'}`}
-                >
-                  <div>{formatSlotLabel(slot)}</div>
-                  {slot.isBreak && <div className="text-xs text-amber-600 dark:text-amber-400">Break</div>}
-                </th>
-              ))}
-            </tr>
-          </thead>
-
-          <tbody>
-            {days.map((day) => (
-              <tr key={day}>
-                <td className="border p-2 font-semibold bg-gray-50 dark:bg-gray-800">{day}</td>
-
-                {slots.map((slot) => (
-                  <td
-                    key={slot.id}
-                    className={`border p-2 ${slot.isBreak ? 'bg-amber-50 dark:bg-amber-900/20' : ''}`}
-                  >
-                    {slot.isBreak ? (
-                      <span className="text-amber-600 dark:text-amber-400 text-sm italic">Break</span>
-                    ) : (
-                      <select
-                        value={timetable[day]?.[slot.id] || ""}
-                        onChange={(e) => handleChange(day, slot.id, e.target.value)}
-                        className="w-full border rounded px-2 py-1
-                                  bg-bg text-text
-                                  dark:bg-bg dark:text-primary-btn-text dark:border-gray-600"
-                      >
-                        <option value="">-- Select --</option>
-                        {availableCourses.map((course, i) => (
-                          <option key={i} value={course}>
-                            {course}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  </td>
-                ))}
-              </tr>
-            ))}
-
-            {/* Saturday & Sunday */}
-            <tr>
-              <td className="border p-2 font-semibold bg-gray-50 dark:bg-gray-800">Saturday</td>
-              <td colSpan={slots.length} className="border p-2 text-gray-500 italic">
-                Holiday
-              </td>
-            </tr>
-            <tr>
-              <td className="border p-2 font-semibold bg-gray-50 dark:bg-gray-800">Sunday</td>
-              <td colSpan={slots.length} className="border p-2 text-gray-500 italic">
-                Holiday
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        {/* Save Footer */}
+        <footer className="flex justify-end pt-4 pb-12">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="group flex items-center gap-3 px-10 py-4 rounded-2xl font-bold bg-primary-btn text-primary-btn-text hover:bg-primary-btn-hover shadow-xl shadow-primary-btn/20 hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50"
+          >
+            <Save size={18} className="group-hover:scale-110 transition-transform" />
+            {saving ? "Deploying Schedule..." : "Save Changes"}
+          </button>
+        </footer>
       </div>
-
-      <button
-        onClick={handleSave}
-        className="mt-4 px-4 py-2 rounded cursor-pointer bg-primary-btn text-primary-btn-text hover:bg-primary-btn-hover transition-colors"
-      >
-        Save Timetable
-      </button>
     </div>
   );
 }
