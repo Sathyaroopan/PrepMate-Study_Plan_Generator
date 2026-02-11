@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Sparkles, Settings2, Plus, X, Save } from "lucide-react";
 
 const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
@@ -20,8 +20,15 @@ export default function TimetableEditor() {
   const [availableCourses, setAvailableCourses] = useState([]);
   const [loadingCourses, setLoadingCourses] = useState(true);
   const [showSlotManager, setShowSlotManager] = useState(false);
+  const [tempSlots, setTempSlots] = useState([]);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [modalAction, setModalAction] = useState(null); // 'save' | 'cancel'
   const [newSlot, setNewSlot] = useState({ startTime: "", endTime: "", isBreak: false });
   const [saving, setSaving] = useState(false);
+
+  const endTimeRef = useRef(null);
+
+  const hasChanges = JSON.stringify(slots) !== JSON.stringify(tempSlots);
 
   // Load Data
   useEffect(() => {
@@ -74,18 +81,48 @@ export default function TimetableEditor() {
     }
   };
 
+  const toggleSlotManager = () => {
+    if (showSlotManager) {
+      if (showConfirmModal) setShowConfirmModal(false);
+      setShowSlotManager(false);
+    } else {
+      setTempSlots([...slots]);
+      setShowSlotManager(true);
+    }
+  };
+
+  const initiateSave = () => {
+    setModalAction('save');
+    setShowConfirmModal(true);
+  };
+
+  const initiateCancel = () => {
+    setModalAction('cancel');
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirm = () => {
+    if (modalAction === 'save') {
+      setSlots(tempSlots);
+      setShowSlotManager(false);
+    } else if (modalAction === 'cancel') {
+      setShowSlotManager(false);
+    }
+    setShowConfirmModal(false);
+  };
+
   const addSlot = () => {
     if (!newSlot.startTime || !newSlot.endTime) return;
-    const nextId = Math.max(...slots.map((s) => s.id), 0) + 1;
-    const updatedSlots = [...slots, { id: nextId, ...newSlot }].sort((a, b) =>
+    const nextId = Math.max(...tempSlots.map((s) => s.id), 0) + 1;
+    const updatedSlots = [...tempSlots, { id: nextId, ...newSlot }].sort((a, b) =>
       a.startTime.localeCompare(b.startTime)
     );
-    setSlots(updatedSlots);
+    setTempSlots(updatedSlots);
     setNewSlot({ startTime: "", endTime: "", isBreak: false });
   };
 
   const removeSlot = (slotId) => {
-    setSlots(slots.filter((s) => s.id !== slotId));
+    setTempSlots(tempSlots.filter((s) => s.id !== slotId));
   };
 
   if (loadingCourses) return (
@@ -97,7 +134,7 @@ export default function TimetableEditor() {
   return (
     <div className="w-full max-w-full overflow-x-hidden bg-bg text-text min-h-screen transition-colors duration-300">
       <div className="max-w-7xl mx-auto p-4 md:p-10 space-y-8">
-        
+
         {/* Header */}
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-[var(--border)] pb-8">
           <div className="space-y-1">
@@ -108,7 +145,7 @@ export default function TimetableEditor() {
             </div>
           </div>
           <button
-            onClick={() => setShowSlotManager(!showSlotManager)}
+            onClick={toggleSlotManager}
             className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-secondary-btn text-secondary-btn-text hover:bg-secondary-btn-hover transition-all text-sm font-medium border border-[var(--border)]"
           >
             <Settings2 size={16} />
@@ -123,7 +160,7 @@ export default function TimetableEditor() {
               <Settings2 size={18} /> Time Slot Configuration
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-              {slots.map((slot) => (
+              {tempSlots.map((slot) => (
                 <div key={slot.id} className="flex items-center gap-2 p-3 bg-bg border border-[var(--border)] rounded-xl shadow-sm group">
                   <div className="text-xs font-mono font-bold opacity-40">{slot.startTime}</div>
                   <div className="h-px w-2 bg-[var(--border)]"></div>
@@ -134,21 +171,83 @@ export default function TimetableEditor() {
                 </div>
               ))}
             </div>
-            
+
             <div className="flex flex-wrap items-center gap-4 pt-4 border-t border-[var(--border)]">
               <div className="flex items-center gap-2 bg-bg border border-[var(--border)] px-4 py-2 rounded-xl">
-                <input type="time" value={newSlot.startTime} onChange={e => setNewSlot({...newSlot, startTime: e.target.value})} className="bg-transparent outline-none text-sm cursor-pointer" />
+                <input
+                  type="time"
+                  value={newSlot.startTime}
+                  onChange={e => {
+                    setNewSlot({ ...newSlot, startTime: e.target.value });
+                    if (e.target.value && endTimeRef.current) {
+                      endTimeRef.current.focus();
+                    }
+                  }}
+                  className="bg-transparent outline-none text-sm cursor-pointer"
+                />
                 <span className="opacity-20">—</span>
-                <input type="time" value={newSlot.endTime} onChange={e => setNewSlot({...newSlot, endTime: e.target.value})} className="bg-transparent outline-none text-sm cursor-pointer" />
+                <input
+                  ref={endTimeRef}
+                  type="time"
+                  value={newSlot.endTime}
+                  onChange={e => setNewSlot({ ...newSlot, endTime: e.target.value })}
+                  className="bg-transparent outline-none text-sm cursor-pointer"
+                />
               </div>
               <label className="flex items-center gap-2 cursor-pointer group">
-                <input type="checkbox" checked={newSlot.isBreak} onChange={e => setNewSlot({...newSlot, isBreak: e.target.checked})} className="w-4 h-4 rounded border-[var(--border)] accent-primary-btn" />
+                <input type="checkbox" checked={newSlot.isBreak} onChange={e => setNewSlot({ ...newSlot, isBreak: e.target.checked })} className="w-4 h-4 rounded border-[var(--border)] accent-primary-btn" />
                 <span className="text-sm font-medium opacity-70 group-hover:opacity-100 transition-opacity">Break</span>
               </label>
               <button onClick={addSlot} className="px-5 py-2 bg-primary-btn text-primary-btn-text rounded-xl text-sm font-bold hover:bg-primary-btn-hover flex items-center gap-2 transition-all">
-                <Plus size={16} /> Add
+                <Plus size={16} /> Add Slot
               </button>
+
+              <div className="ml-auto flex items-center gap-3">
+                {hasChanges && (
+                  <>
+                    <button onClick={initiateCancel} className="px-5 py-2 rounded-xl text-sm font-medium hover:bg-red-50 text-red-500 transition-colors animate-in fade-in zoom-in-95 duration-200">
+                      Cancel
+                    </button>
+                    <button onClick={initiateSave} className="px-5 py-2 bg-primary-btn text-primary-btn-text rounded-xl text-sm font-bold hover:bg-primary-btn-hover shadow-lg shadow-primary-btn/20 transition-all flex items-center gap-2 animate-in fade-in zoom-in-95 duration-200">
+                      <Save size={16} /> Save Slots
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
+
+            {/* Custom Confirmation Modal */}
+            {showConfirmModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm animate-in fade-in duration-200">
+                <div className="bg-bg border border-[var(--border)] p-6 rounded-2xl shadow-2xl max-w-sm w-full space-y-4 animate-in zoom-in-95 duration-200">
+                  <div className="space-y-2">
+                    <h4 className="text-lg font-bold">{modalAction === 'save' ? "Save Changes?" : "Discard Changes?"}</h4>
+                    <p className="text-sm opacity-70">
+                      {modalAction === 'save'
+                        ? "This will update your main schedule grid with the new time slots. You still need to click \"Save Changes\" at the bottom to persist to the database."
+                        : "Are you sure you want to discard your changes? All unsaved slot configurations will be lost."}
+                    </p>
+                  </div>
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      onClick={() => setShowConfirmModal(false)}
+                      className="flex-1 px-4 py-2 rounded-xl text-sm font-medium bg-secondary-btn text-secondary-btn-text hover:bg-secondary-btn-hover transition-colors"
+                    >
+                      Keep Editing
+                    </button>
+                    <button
+                      onClick={handleConfirm}
+                      className={`flex-1 px-4 py-2 rounded-xl text-sm font-bold shadow-lg transition-colors ${modalAction === 'save'
+                        ? "bg-primary-btn text-primary-btn-text hover:bg-primary-btn-hover shadow-primary-btn/20"
+                        : "bg-red-500 text-white hover:bg-red-600 shadow-red-500/20"
+                        }`}
+                    >
+                      {modalAction === 'save' ? "Confirm" : "Discard"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </section>
         )}
 
