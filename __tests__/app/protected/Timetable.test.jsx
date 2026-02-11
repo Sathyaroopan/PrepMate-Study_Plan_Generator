@@ -154,7 +154,7 @@ describe("TimetableEditor", () => {
         fireEvent.change(timeInputs[0], { target: { value: "10:00" } });
         fireEvent.change(timeInputs[1], { target: { value: "11:00" } });
 
-        fireEvent.click(screen.getByText("Add"));
+        fireEvent.click(screen.getByText("Add Slot"));
 
         // Check if added to the list in config panel
         // The list displays "10:00" and "11:00"
