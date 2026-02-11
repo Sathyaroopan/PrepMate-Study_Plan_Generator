@@ -48,4 +48,31 @@
     color: var(--text);
     font-family: var(--font-sans), system-ui, sans-serif;
   }
+
+  /* Target the scrollable container specifically */
+  .scrollbar-hide::-webkit-scrollbar {
+    height: 8px; /* Height for horizontal scroll */
+    width: 8px;  /* Width for vertical scroll */
+  }
+
+  .scrollbar-hide::-webkit-scrollbar-track {
+    background: var(--bg); /* Matches your page background */
+    border-radius: 10px;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar-thumb {
+    background: var(--border); /* Subtle contrast */
+    border-radius: 10px;
+    border: 2px solid var(--bg); /* Creates a "floating" effect */
+  }
+
+  .scrollbar-hide::-webkit-scrollbar-thumb:hover {
+    background: var(--p-btn); /* Darkens/Highlights on hover */
+  }
+
+  /* Firefox Support */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) var(--bg);
+  }
 }
