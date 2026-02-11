@@ -47,6 +47,7 @@ export async function POST(req) {
     const userId = decoded.id;
 
     const body = await req.json();
+    console.log("Profile Update Payload:", body); // DEBUG LOG
     const { name, rollNumber, course, semester, courses } = body;
 
     // update user including courses array
