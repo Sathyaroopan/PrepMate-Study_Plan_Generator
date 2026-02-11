@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { FaFire, FaClock, FaCheckCircle, FaBookOpen, FaExclamationTriangle } from "react-icons/fa";
+import { Flame, Clock, CheckCircle, BookOpen, AlertTriangle, Rocket, Zap, Target } from "lucide-react";
 
 export default function DashboardPage() {
   const [user, setUser] = useState(null);
@@ -83,7 +83,7 @@ export default function DashboardPage() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-[var(--border)] pb-8">
         <div>
           <h1 className="text-3xl font-bold tracking-tight mb-2">
-            {greeting}, <span className="text-blue-600 dark:text-blue-400">{user?.name || "Student"}</span>! 👋
+            {greeting}, <span className="text-blue-600 dark:text-blue-400">{user?.name || "Student"}</span>!
           </h1>
           <p className="text-sm opacity-60 max-w-lg leading-relaxed">
             &quot;Success is the sum of small efforts, repeated day in and day out.&quot;
@@ -101,28 +101,28 @@ export default function DashboardPage() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          icon={<FaBookOpen className="w-5 h-5 text-blue-500" />}
+          icon={<BookOpen className="w-5 h-5 text-blue-500" />}
           label="Pending Tasks"
           value={stats.pending}
           subtext="Assignments waiting"
           color="bg-blue-500/10"
         />
         <StatCard
-          icon={<FaFire className="w-5 h-5 text-amber-500" />}
+          icon={<Flame className="w-5 h-5 text-amber-500" />}
           label="High Priority"
           value={stats.highPriority}
           subtext="Needs attention"
           color="bg-amber-500/10"
         />
         <StatCard
-          icon={<FaClock className="w-5 h-5 text-purple-500" />}
+          icon={<Clock className="w-5 h-5 text-purple-500" />}
           label="Study Debt"
           value={`${stats.studyHours}h`}
           subtext="Estimated effort"
           color="bg-purple-500/10"
         />
         <StatCard
-          icon={<FaCheckCircle className="w-5 h-5 text-emerald-500" />}
+          icon={<CheckCircle className="w-5 h-5 text-emerald-500" />}
           label="Completed"
           value="0" // Placeholder until we have completed state
           subtext="Keep it up!"
@@ -134,7 +134,7 @@ export default function DashboardPage() {
         {/* Main Content: Up Next */}
         <div className="lg:col-span-2 space-y-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold">🚀 Up Next</h2>
+            <h2 className="text-xl font-bold flex items-center gap-2"><Rocket className="w-5 h-5 text-blue-500" /> Up Next</h2>
             <Link href="/tasks" className="text-xs font-bold opacity-50 hover:opacity-100 hover:underline">
               View All Tasks →
             </Link>
@@ -143,7 +143,7 @@ export default function DashboardPage() {
           {stats.nextDeadline ? (
             <div className="p-6 rounded-3xl bg-[var(--bg)] border-2 border-dashed border-[var(--border)] hover:border-blue-500/30 transition-all group relative overflow-hidden">
               <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                <FaExclamationTriangle className="w-24 h-24 text-[var(--text)]" />
+                <AlertTriangle className="w-24 h-24 text-[var(--text)]" />
               </div>
 
               <div className="relative z-10">
@@ -162,11 +162,11 @@ export default function DashboardPage() {
 
                 <div className="flex gap-6 text-sm opacity-60">
                   <span className="flex items-center gap-2">
-                    <FaClock className="w-3 h-3" />
+                    <Clock className="w-3 h-3" />
                     Due on {new Date(stats.nextDeadline.deadline).toLocaleDateString()}
                   </span>
                   <span className="flex items-center gap-2">
-                    <FaBookOpen className="w-3 h-3" />
+                    <BookOpen className="w-3 h-3" />
                     {stats.nextDeadline.estimatedHours} Hours est.
                   </span>
                 </div>
@@ -192,7 +192,7 @@ export default function DashboardPage() {
           )}
 
           {/* Quick Actions Grid */}
-          <h2 className="text-xl font-bold pt-4">⚡ Quick Actions</h2>
+          <h2 className="text-xl font-bold pt-4 flex items-center gap-2"><Zap className="w-5 h-5 text-amber-500" /> Quick Actions</h2>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {[
               { label: "New Task", href: "/tasks", color: "bg-blue-500" },
@@ -213,7 +213,7 @@ export default function DashboardPage() {
         {/* Right Column: Mini Calendar or Recommendations */}
         <div className="space-y-6">
           <div className="p-6 rounded-3xl bg-gradient-to-br from-blue-600 to-purple-600 text-white shadow-xl shadow-blue-500/20">
-            <h3 className="font-bold text-lg mb-2">Weekly Goal 🎯</h3>
+            <h3 className="font-bold text-lg mb-2 flex items-center gap-2"><Target className="w-5 h-5" /> Weekly Goal</h3>
             <p className="text-sm opacity-90 mb-6">
               Complete 5 high-priority tasks this week to stay ahead of simpler subjects.
             </p>
