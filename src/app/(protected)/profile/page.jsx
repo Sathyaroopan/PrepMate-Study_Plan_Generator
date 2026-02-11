@@ -37,14 +37,24 @@ export default function ProfilePage() {
     loadProfile();
   }, []);
 
-  const saveProfile = async () => {
+  const saveProfile = async (updatedData = {}) => {
     setSaving(true);
+    // Use provided data or fallback to state
+    const payload = {
+      name,
+      rollNumber,
+      course,
+      semester,
+      courses,
+      ...updatedData
+    };
+
     try {
       const res = await fetch("/api/auth/profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ name, rollNumber, course, semester, courses }),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) alert("Failed to save profile");
     } catch (err) {
@@ -56,12 +66,16 @@ export default function ProfilePage() {
 
   const addCourse = () => {
     if (!newCourse.trim()) return;
-    setCourses([...courses, newCourse.trim()]);
+    const updatedCourses = [...courses, newCourse.trim()];
+    setCourses(updatedCourses);
     setNewCourse("");
+    saveProfile({ courses: updatedCourses });
   };
 
   const removeCourse = (index) => {
-    setCourses(courses.filter((_, i) => i !== index));
+    const updatedCourses = courses.filter((_, i) => i !== index);
+    setCourses(updatedCourses);
+    saveProfile({ courses: updatedCourses });
   };
 
   if (loading) return <div className="p-10 text-text">Loading profile...</div>;
@@ -69,7 +83,7 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-bg text-text p-6 md:p-12 transition-colors duration-300">
       <div className="max-w-3xl mx-auto space-y-12">
-        
+
         {/* Header Section */}
         <header className="border-b border-[var(--border)] pb-6">
           <h1 className="text-3xl font-bold tracking-tight">Student Profile</h1>
@@ -123,7 +137,7 @@ export default function ProfilePage() {
           </div>
 
           <button
-            onClick={saveProfile}
+            onClick={() => saveProfile()}
             disabled={saving}
             className="px-6 py-3 rounded-lg font-medium bg-primary-btn text-primary-btn-text hover:bg-primary-btn-hover active:scale-95 transition-all disabled:opacity-50"
           >
