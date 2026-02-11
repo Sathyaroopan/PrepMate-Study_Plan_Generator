@@ -150,19 +150,167 @@ graph TD
 
 ### Use Case Diagram
 
-<!-- TODO: Add Use Case Diagram here -->
+```mermaid
+flowchart LR
+    Student(("Student"))
+
+    subgraph Authentication
+        UC1["Register"]
+        UC2["Login"]
+        UC3["Logout"]
+    end
+
+    subgraph Profile Management
+        UC4["View Profile"]
+        UC5["Edit Profile"]
+        UC6["Manage Courses"]
+    end
+
+    subgraph Timetable
+        UC7["View Timetable"]
+        UC8["Configure Slots"]
+        UC9["Assign Courses to Slots"]
+    end
+
+    subgraph Task Management
+        UC10["Create Task"]
+        UC11["View Tasks"]
+        UC12["Edit Task"]
+        UC13["Delete Task"]
+        UC14["Mark Task Complete"]
+    end
+
+    subgraph Study Planner
+        UC15["Generate AI Study Plan"]
+        UC16["View Study Sessions"]
+    end
+
+    subgraph Preferences
+        UC17["Toggle Light / Dark Theme"]
+    end
+
+    Student --- UC1 & UC2 & UC3
+    Student --- UC4 & UC5 & UC6
+    Student --- UC7 & UC8 & UC9
+    Student --- UC10 & UC11 & UC12 & UC13 & UC14
+    Student --- UC15 & UC16
+    Student --- UC17
+```
 
 ---
 
 ### Schema Diagram
 
-<!-- TODO: Add Schema Diagram here -->
+```mermaid
+erDiagram
+    USER {
+        ObjectId _id PK
+        String rollNumber UK
+        String name
+        Number semester
+        String password
+        String[] courses
+        Number dailyAvailableHours
+        String studyPreference
+        Boolean consentForAnalytics
+    }
+
+    COURSE {
+        ObjectId _id PK
+        ObjectId userId FK
+        String name
+        String semester
+        Number credit
+        String difficulty
+    }
+
+    TASK {
+        ObjectId _id PK
+        ObjectId userId FK
+        ObjectId courseId FK
+        String title
+        Date deadline
+        Number estimatedHours
+        String priority
+        String status
+    }
+
+    TIMETABLE {
+        ObjectId _id PK
+        ObjectId userId FK
+        Array slots
+        Object timetable
+    }
+
+    STUDYSESSION {
+        ObjectId _id PK
+        ObjectId userId FK
+        ObjectId taskId FK
+        String title
+        Date startTime
+        Date endTime
+        Number actualDuration
+        Boolean completed
+    }
+
+    ACTIVITYLOG {
+        ObjectId _id PK
+        ObjectId userId FK
+        ObjectId taskId FK
+        String type
+        Date timestamp
+    }
+
+    USER ||--o{ COURSE       : "has"
+    USER ||--o{ TASK         : "creates"
+    USER ||--o| TIMETABLE    : "owns"
+    USER ||--o{ STUDYSESSION : "has"
+    USER ||--o{ ACTIVITYLOG  : "generates"
+    COURSE ||--o{ TASK       : "contains"
+    TASK ||--o{ STUDYSESSION : "scheduled as"
+    TASK ||--o{ ACTIVITYLOG  : "logged in"
+```
 
 ---
 
-### Sequence Diagram
+### Sequence Diagram — Study Plan Generation
 
-<!-- TODO: Add Sequence Diagram here -->
+```mermaid
+sequenceDiagram
+    actor S as Student
+    participant UI as React Frontend
+    participant MW as Middleware
+    participant API as /api/scheduler
+    participant SCH as Scheduler Engine
+    participant DB as MongoDB
+
+    S->>UI: Click "Generate AI Study Plan"
+    UI->>API: POST /api/scheduler { days: 7 }
+    API->>MW: Verify JWT cookie
+    MW-->>API: userId
+
+    API->>SCH: generateStudyPlan(userId, days)
+
+    SCH->>DB: Fetch pending Tasks
+    DB-->>SCH: tasks[]
+    SCH->>DB: Fetch Timetable & slots
+    DB-->>SCH: timetable, slots[]
+
+    Note over SCH: Calculate planning period,<br/>workload, and daily capacity
+
+    loop For each day in planning period
+        SCH->>SCH: Compute busy blocks from timetable
+        SCH->>SCH: Calculate free intervals
+        SCH->>SCH: Split into morning / midday / evening
+        SCH->>SCH: Schedule sessions (30-75 min) with breaks
+    end
+
+    SCH->>DB: Insert StudySessions[]
+    DB-->>SCH: confirmation
+    SCH-->>API: { sessionsCreated: N }
+    API-->>UI: 200 { message, sessionsCreated }
+    UI-->>S: Show success notification
+```
 
 ---
 
