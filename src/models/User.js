@@ -15,6 +15,14 @@ const UserSchema = new mongoose.Schema(
       trim: true,
     },
 
+    course: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+
+
     semester: {
       type: Number,
       required: true,
@@ -22,11 +30,11 @@ const UserSchema = new mongoose.Schema(
       max: 8,
     },
 
-  
+
     password: {
       type: String,
       required: true,
-      minlength: 6, 
+      minlength: 6,
     },
 
     courses: {
@@ -35,7 +43,7 @@ const UserSchema = new mongoose.Schema(
     },
 
     dailyAvailableHours: {
-      type: Number, 
+      type: Number,
       default: 4,
       min: 0,
       max: 24,
@@ -47,7 +55,7 @@ const UserSchema = new mongoose.Schema(
       default: "evening",
     },
 
-  
+
     consentForAnalytics: {
       type: Boolean,
       default: true,
