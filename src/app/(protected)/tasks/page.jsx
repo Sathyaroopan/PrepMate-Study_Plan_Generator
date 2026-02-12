@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import DateTimePicker from "@/components/DateTimePicker";
 
 export default function TasksPage() {
   const [tasks, setTasks] = useState([]);
@@ -11,12 +12,16 @@ export default function TasksPage() {
   const [loadingCourses, setLoadingCourses] = useState(true);
   const [showModal, setShowModal] = useState(false);
 
+  // Edit State
+  const [editingTask, setEditingTask] = useState(null); // null = creating, object = editing
+
   // Form State
   const [courseName, setCourseName] = useState("");
   const [title, setTitle] = useState("");
   const [deadline, setDeadline] = useState("");
   const [estimatedHours, setEstimatedHours] = useState("");
   const [priority, setPriority] = useState("medium");
+  const [status, setStatus] = useState("pending");
 
   const fetchTasks = async () => {
     try {
@@ -49,6 +54,28 @@ export default function TasksPage() {
     fetchTasks();
   }, []);
 
+  const openCreateModal = () => {
+    setEditingTask(null);
+    setCourseName("");
+    setTitle("");
+    setDeadline("");
+    setEstimatedHours("");
+    setPriority("medium");
+    setStatus("pending");
+    setShowModal(true);
+  };
+
+  const openEditModal = (task) => {
+    setEditingTask(task);
+    setCourseName(task.courseId?.name || ""); // Handle populated course
+    setTitle(task.title);
+    setDeadline(task.deadline); // Custom picker works with ISO string
+    setEstimatedHours(task.estimatedHours);
+    setPriority(task.priority);
+    setStatus(task.status || "pending");
+    setShowModal(true);
+  };
+
   const handleAddTask = async (e) => {
     e.preventDefault();
     if (!courseName || !title || !deadline || !estimatedHours) {
@@ -57,8 +84,11 @@ export default function TasksPage() {
     }
 
     try {
-      const res = await fetch("/api/tasks", {
-        method: "POST",
+      const url = editingTask ? `/api/tasks/${editingTask._id}` : "/api/tasks";
+      const method = editingTask ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method: method,
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -67,18 +97,21 @@ export default function TasksPage() {
           deadline,
           estimatedHours: Number(estimatedHours),
           priority,
+          status,
         }),
       });
 
-      if (!res.ok) throw new Error("Failed to create task");
+      if (!res.ok) throw new Error(editingTask ? "Failed to update task" : "Failed to create task");
 
       // Reset & Refresh
       setShowModal(false);
+      setEditingTask(null);
       setCourseName("");
       setTitle("");
       setDeadline("");
       setEstimatedHours("");
       setPriority("medium");
+      setStatus("pending");
       fetchTasks();
     } catch (err) {
       alert(err.message);
@@ -102,7 +135,7 @@ export default function TasksPage() {
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors">
       <div className="max-w-5xl mx-auto px-6 py-10">
-        
+
         {/* Header Section */}
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
           <div>
@@ -119,7 +152,7 @@ export default function TasksPage() {
             </div>
           </div>
           <button
-            onClick={() => setShowModal(true)}
+            onClick={openCreateModal}
             className="h-fit px-6 py-3 rounded-xl bg-[var(--p-btn)] text-[var(--p-btn-txt)] font-semibold hover:bg-[var(--p-btn-hov)] transition-all active:scale-95 shadow-lg shadow-black/5"
           >
             + Add New Task
@@ -138,9 +171,20 @@ export default function TasksPage() {
             {tasks.map((task) => (
               <div
                 key={task._id}
-                className="group bg-[var(--bg)] border border-[var(--border)] rounded-2xl p-6 hover:border-[var(--p-btn)] transition-all hover:shadow-xl hover:shadow-black/[0.02]"
+                className="group relative bg-[var(--bg)] border border-[var(--border)] rounded-2xl p-6 hover:border-[var(--p-btn)] transition-all hover:shadow-xl hover:shadow-black/[0.02]"
               >
-                <div className="flex justify-between items-start mb-4">
+                {/* Edit Button - Visible on Hover */}
+                <button
+                  onClick={() => openEditModal(task)}
+                  className="absolute top-4 right-4 p-2 rounded-lg bg-[var(--s-btn)] opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-500/10 hover:text-blue-500"
+                  title="Edit Task"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                  </svg>
+                </button>
+
+                <div className="flex justify-between items-start mb-4 pr-8">
                   <div className="flex flex-col">
                     <span className="text-[10px] font-bold uppercase tracking-widest text-blue-500 mb-1">
                       {task.courseId?.name || "Independent"}
@@ -186,22 +230,29 @@ export default function TasksPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md bg-black/20 animate-in fade-in duration-300">
           <div className="bg-[var(--bg)] w-full max-w-md rounded-3xl shadow-2xl border border-[var(--border)] overflow-hidden">
             <div className="p-8">
-              <h2 className="text-2xl font-bold mb-1">Create Task</h2>
-              <p className="text-sm opacity-50 mb-8">Set your goals and estimates.</p>
+              <h2 className="text-2xl font-bold mb-1">{editingTask ? "Edit Task" : "Create Task"}</h2>
+              <p className="text-sm opacity-50 mb-8">{editingTask ? "Update your task details." : "Set your goals and estimates."}</p>
 
               <form onSubmit={handleAddTask} className="space-y-6">
                 <div className="space-y-2">
                   <label className="text-[11px] font-black uppercase opacity-60 tracking-wider">Course</label>
-                  <select
-                    value={courseName}
-                    onChange={(e) => setCourseName(e.target.value)}
-                    className="w-full bg-[var(--s-btn)] border border-[var(--border)] rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[var(--p-btn)] transition-all"
-                  >
-                    <option value="">Select Course</option>
-                    {availableCourses.map((c, i) => (
-                      <option key={i} value={c}>{c}</option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={courseName}
+                      onChange={(e) => setCourseName(e.target.value)}
+                      className="w-full bg-[var(--s-btn)] border border-[var(--border)] rounded-xl px-4 py-3 pr-10 appearance-none outline-none focus:ring-2 focus:ring-[var(--p-btn)] transition-all cursor-pointer"
+                    >
+                      <option value="">Select Course</option>
+                      {availableCourses.map((c, i) => (
+                        <option key={i} value={c}>{c}</option>
+                      ))}
+                    </select>
+                    <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none opacity-50">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="m6 9 6 6 6-6" />
+                      </svg>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -215,15 +266,15 @@ export default function TasksPage() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-4">
                   <div className="space-y-2">
-                    <label className="text-[11px] font-black uppercase opacity-60 tracking-wider">Deadline</label>
-                    <input
-                      type="datetime-local"
-                      value={deadline}
-                      onChange={(e) => setDeadline(e.target.value)}
-                      className="w-full bg-[var(--s-btn)] border border-[var(--border)] rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[var(--p-btn)] transition-all text-sm"
-                    />
+                    <div className="relative z-20">
+                      <DateTimePicker
+                        value={deadline}
+                        onChange={(dateStr) => setDeadline(dateStr)}
+                        label="Deadline"
+                      />
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <label className="text-[11px] font-black uppercase opacity-60 tracking-wider">Est. Hours</label>
@@ -242,23 +293,31 @@ export default function TasksPage() {
                   </div>
                 </div>
 
+
+
                 <div className="space-y-2">
                   <label className="text-[11px] font-black uppercase opacity-60 tracking-wider">Priority</label>
                   <div className="grid grid-cols-3 gap-2 p-1 bg-[var(--s-btn)] rounded-xl border border-[var(--border)]">
-                    {['low', 'medium', 'high'].map((p) => (
-                      <button
-                        key={p}
-                        type="button"
-                        onClick={() => setPriority(p)}
-                        className={`py-2 rounded-lg text-xs font-bold capitalize transition-all ${
-                          priority === p 
-                          ? 'bg-[var(--p-btn)] text-[var(--p-btn-txt)] shadow-sm' 
-                          : 'opacity-40 hover:opacity-100'
-                        }`}
-                      >
-                        {p}
-                      </button>
-                    ))}
+                    {['low', 'medium', 'high'].map((p) => {
+                      const colors = {
+                        low: "bg-emerald-500 text-white shadow-emerald-500/20",
+                        medium: "bg-amber-500 text-white shadow-amber-500/20",
+                        high: "bg-red-500 text-white shadow-red-500/20"
+                      };
+                      return (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => setPriority(p)}
+                          className={`py-2 rounded-lg text-xs font-bold capitalize transition-all ${priority === p
+                            ? `${colors[p]} shadow-lg`
+                            : 'opacity-40 hover:opacity-100 hover:bg-white/5'
+                            }`}
+                        >
+                          {p}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -274,7 +333,7 @@ export default function TasksPage() {
                     type="submit"
                     className="flex-1 px-4 py-3 rounded-xl bg-[var(--p-btn)] text-[var(--p-btn-txt)] font-bold text-sm hover:shadow-lg transition-all active:scale-95"
                   >
-                    Add Task
+                    {editingTask ? "Update Task" : "Add Task"}
                   </button>
                 </div>
               </form>
