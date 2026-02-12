@@ -771,11 +771,22 @@ All tests are located in the `__tests__/` directory, mirroring the `src/` folder
 
 ```
 __tests__/
+├── app/
+│   ├── auth/
+│   │   ├── Login.test.jsx
+│   │   └── Register.test.jsx
+│   └── protected/
+│       ├── Dashboard.test.jsx
+│       ├── Profile.test.jsx
+│       ├── Tasks.test.jsx
+│       └── Timetable.test.jsx
 ├── lib/
 │   ├── scheduler.test.js     # Scheduler helper function tests
 │   └── jwt.test.js           # JWT utility tests
 └── components/
-    └── Navbar.test.jsx       # Navbar component tests
+    ├── Navbar.test.jsx       # Navbar component tests
+    ├── Sidebar.test.jsx      # Sidebar component tests
+    └── SchedulerTrigger.test.jsx # Scheduler trigger component tests
 ```
 
 ### Test Summary
@@ -825,6 +836,50 @@ Tests for the Navbar React component using React Testing Library.
 | Theme toggle click | Verifies `data-theme` attribute changes from `"light"` to `"dark"` on click |
 | LocalStorage persistence | Confirms theme preference is saved to `localStorage` on toggle |
 
+#### 4. Sidebar Component Tests (`__tests__/components/Sidebar.test.jsx`)
+
+Tests for the Sidebar navigation component.
+
+| Test Case | Description |
+|-----------|-------------|
+| Renders logo | Verifies the site logo is displayed |
+| Navigation links | Checks that all navigation links (Dashboard, Timetable, etc.) are present |
+| Active link | Confirms the current page link is highlighted |
+| Logout modal | Verifies clicking logout opens the confirmation modal |
+| Logout action | Confirms clicking "Sign Out" in modal calls the API and redirects |
+
+#### 5. SchedulerTrigger Component Tests (`__tests__/components/SchedulerTrigger.test.jsx`)
+
+Tests for the AI Study Plan generation button.
+
+| Test Case | Description |
+|-----------|-------------|
+| Renders button | Verifies the "Generate AI Study Plan" button is displayed |
+| Loading state | Checks that the button shows a loading spinner while generating |
+| API call | Confirms the correct API endpoint is called with parameters |
+| Success feedback | Verifies success message is displayed after generation |
+| Callback trigger | Checks that `onPlanGenerated` callback is executed on success |
+
+#### 6. Auth Page Tests (`__tests__/app/auth/...`)
+
+Integration tests for authentication pages.
+
+| Page | Test Scenarios |
+|------|----------------|
+| `Login.test.jsx` | Form rendering, Input handling, Successful login (redirect) and Failed login (error message) |
+| `Register.test.jsx` | Form rendering, Input validation (semester), Successful registration (redirect), Duplicate user error |
+
+#### 7. Protected Page Tests (`__tests__/app/protected/...`)
+
+Integration tests for the main application pages.
+
+| Page | Test Scenarios |
+|------|----------------|
+| `Dashboard.test.jsx` | Loading state, Data fetching (profile, tasks), Stats display, Error handling |
+| `Profile.test.jsx` | Profile data display, Edit name/details, Add/Remove courses, Save functionality |
+| `Tasks.test.jsx` | Loading/Empty states, Task list rendering, "Add Task" modal interaction, Form validation |
+| `Timetable.test.jsx` | Timetable grid rendering, Slot configuration (add/remove), Entry updates, Save functionality |
+
 ### Testing Tools & Configuration
 
 | File | Purpose |
@@ -835,7 +890,7 @@ Tests for the Navbar React component using React Testing Library.
 ### Test Results
 
 ```
-Test Suites: 3 passed, 3 total
-Tests:       24 passed, 24 total
+Test Suites: 11 passed, 11 total
+Tests:       72 passed, 72 total
 Snapshots:   0 total
 ```
