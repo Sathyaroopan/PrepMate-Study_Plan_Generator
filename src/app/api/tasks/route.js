@@ -74,7 +74,18 @@ export async function GET(req) {
         }
 
         await connectDB();
-        const tasks = await Task.find({ userId: decoded.id, status: "pending" }).populate("courseId", "name");
+
+        const { searchParams } = new URL(req.url);
+        const statusParam = searchParams.get("status");
+
+        let query = { userId: decoded.id };
+        if (statusParam && statusParam !== "all") {
+            query.status = statusParam;
+        } else if (!statusParam) {
+            query.status = "pending"; // Default to pending if not specified
+        }
+
+        const tasks = await Task.find(query).populate("courseId", "name");
 
         return NextResponse.json(tasks);
     } catch (error) {
