@@ -16,6 +16,7 @@ export default function DashboardPage() {
     highPriority: 0,
     studyHours: 0,
     nextDeadline: null,
+    completedToday: 0,
   });
 
   useEffect(() => {
@@ -28,11 +29,11 @@ export default function DashboardPage() {
           setUser(profile);
         }
 
-        // Fetch Tasks for Stats
-        const tasksRes = await fetch("/api/tasks", { credentials: "include" });
+        // Fetch Tasks for Stats (Fetch all to calculate completed weekly goals)
+        const tasksRes = await fetch("/api/tasks?status=all", { credentials: "include" });
         if (tasksRes.ok) {
           const tasksData = await tasksRes.json();
-          setTasks(tasksData);
+          setTasks(tasksData); // Note: This now includes completed tasks, need to filter for display if needed
           calculateStats(tasksData);
         }
       } catch (err) {
@@ -46,19 +47,47 @@ export default function DashboardPage() {
   }, []);
 
   const calculateStats = (taskList) => {
-    const pending = taskList.filter((t) => t.status === "pending");
-    const highPriority = pending.filter((t) => t.priority === "high");
-    const totalHours = pending.reduce((acc, t) => acc + (Number(t.estimatedHours) || 0), 0);
+    // Current Pending Stats
+    const pendingList = taskList.filter((t) => t.status === "pending");
+    const highPriority = pendingList.filter((t) => t.priority === "high");
+    const totalHours = pendingList.reduce((acc, t) => acc + (Number(t.estimatedHours) || 0), 0);
 
-    // Find nearest deadline
-    const sortedByDate = [...pending].sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+    // Weekly Goal: Completed High Priority tasks this week
+    const now = new Date();
+    // Get start of current week (Monday)
+    const startOfWeek = new Date(now);
+    const day = now.getDay();
+    const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+    startOfWeek.setDate(diff);
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const completedHighWeekly = taskList.filter(t => {
+      if (t.status !== "completed" || t.priority !== "high") return false;
+      const completedDate = new Date(t.updatedAt);
+      return completedDate >= startOfWeek;
+    });
+
+    // Completed Today
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const completedTodayCount = taskList.filter(t => {
+      if (t.status !== "completed") return false;
+      const completedDate = new Date(t.updatedAt);
+      return completedDate >= todayStart;
+    }).length;
+
+    // Find nearest deadline from strictly pending tasks
+    const sortedByDate = [...pendingList].sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
     const nextTask = sortedByDate.length > 0 ? sortedByDate[0] : null;
 
     setStats({
-      pending: pending.length,
+      pending: pendingList.length,
       highPriority: highPriority.length,
       studyHours: totalHours,
       nextDeadline: nextTask,
+      completed: completedHighWeekly.length, // Weekly Goal Count
+      completedToday: completedTodayCount,
     });
   };
 
@@ -124,16 +153,16 @@ export default function DashboardPage() {
         <StatCard
           icon={<CheckCircle className="w-5 h-5 text-emerald-500" />}
           label="Completed"
-          value="0" // Placeholder until we have completed state
-          subtext="Keep it up!"
+          value={stats.completedToday}
+          subtext="Tasks done today"
           color="bg-emerald-500/10"
         />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Content: Up Next */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="flex items-center justify-between">
+        <div className="lg:col-span-2 flex flex-col">
+          <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold flex items-center gap-2"><Rocket className="w-5 h-5 text-blue-500" /> Up Next</h2>
             <Link href="/tasks" className="text-xs font-bold opacity-50 hover:opacity-100 hover:underline">
               View All Tasks →
@@ -141,12 +170,12 @@ export default function DashboardPage() {
           </div>
 
           {stats.nextDeadline ? (
-            <div className="p-6 rounded-3xl bg-[var(--bg)] border-2 border-dashed border-[var(--border)] hover:border-blue-500/30 transition-all group relative overflow-hidden">
+            <div className="flex-1 p-6 rounded-3xl bg-[var(--bg)] border-2 border-dashed border-[var(--border)] hover:border-blue-500/30 transition-all group relative overflow-hidden flex flex-col">
               <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                 <AlertTriangle className="w-24 h-24 text-[var(--text)]" />
               </div>
 
-              <div className="relative z-10">
+              <div className="relative z-10 flex-1 flex flex-col justify-center">
                 <div className="flex gap-2 mb-4">
                   <span className="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider">
                     Due Soon
@@ -181,40 +210,39 @@ export default function DashboardPage() {
               </div>
             </div>
           ) : (
-            <div className="p-10 rounded-3xl bg-[var(--s-btn)]/50 border border-[var(--border)] text-center">
-              <p className="opacity-50 mb-4">No urgent deadlines tasks found.</p>
-              <Link href="/tasks">
-                <button className="px-5 py-2 rounded-xl bg-[var(--p-btn)] text-[var(--p-btn-txt)] font-bold text-sm">
-                  + Create First Task
-                </button>
-              </Link>
+            <div className="flex-1 min-h-[180px] p-6 rounded-3xl bg-[var(--s-btn)]/30 border border-[var(--border)] text-center flex flex-col items-center justify-center relative overflow-hidden group">
+              {/* Background decoration */}
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+              <div className="relative z-10 flex flex-col items-center">
+                <div className="w-12 h-12 rounded-xl bg-[var(--bg)] border border-[var(--border)] flex items-center justify-center mb-4 shadow-sm group-hover:scale-110 transition-transform duration-300">
+                  <CheckCircle className="w-6 h-6 text-emerald-500" />
+                </div>
+
+                <h3 className="font-bold text-lg mb-1">You&apos;re all caught up!</h3>
+                <p className="text-sm opacity-60 mb-6 max-w-[250px] leading-relaxed">
+                  No urgent deadlines on the horizon.
+                </p>
+
+                <Link href="/tasks">
+                  <button className="px-5 py-2.5 rounded-xl bg-[var(--p-btn)] text-[var(--p-btn-txt)] font-bold text-sm hover:scale-105 active:scale-95 transition-all flex items-center gap-2">
+                    <Rocket className="w-4 h-4" />
+                    Create New Task
+                  </button>
+                </Link>
+              </div>
             </div>
           )}
-
-          {/* Quick Actions Grid */}
-          <h2 className="text-xl font-bold pt-4 flex items-center gap-2"><Zap className="w-5 h-5 text-amber-500" /> Quick Actions</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {[
-              { label: "New Task", href: "/tasks", color: "bg-blue-500" },
-              { label: "Timetable", href: "/timetable", color: "bg-emerald-500" },
-              { label: "Profile", href: "/profile", color: "bg-purple-500" },
-              { label: "Settings", href: "/settings", color: "bg-gray-500" },
-            ].map((action, i) => (
-              <Link key={i} href={action.href}>
-                <div className="h-24 rounded-2xl bg-[var(--s-btn)] border border-[var(--border)] hover:border-[var(--text)] transition-all flex flex-col items-center justify-center gap-2 group cursor-pointer hover:shadow-lg">
-                  <div className={`w-8 h-8 rounded-full ${action.color} opacity-20 group-hover:opacity-100 transition-all`} />
-                  <span className="text-xs font-bold">{action.label}</span>
-                </div>
-              </Link>
-            ))}
-          </div>
         </div>
 
-        {/* Right Column: Mini Calendar or Recommendations */}
-        <div className="space-y-6">
-          <div className="p-6 rounded-3xl bg-gradient-to-br from-blue-600 to-purple-600 text-white shadow-xl shadow-blue-500/20">
+        {/* Right Column: Weekly Goal */}
+        <div className="flex flex-col">
+          {/* Invisible header to align with Left Col header */}
+          <div className="h-7 mb-6" aria-hidden="true" />
+
+          <div className="flex-1 p-6 rounded-3xl bg-gradient-to-br from-blue-600 to-purple-600 text-white shadow-xl shadow-blue-500/20 flex flex-col justify-center">
             <h3 className="font-bold text-lg mb-2 flex items-center gap-2"><Target className="w-5 h-5" /> Weekly Goal</h3>
-            <p className="text-sm opacity-90 mb-6">
+            <p className="text-sm opacity-90 mb-6 flex-1">
               Complete 5 high-priority tasks this week to stay ahead of simpler subjects.
             </p>
             <div className="w-full bg-black/20 rounded-full h-2 mb-2">
@@ -225,20 +253,26 @@ export default function DashboardPage() {
             </div>
             <p className="text-xs font-bold opacity-80 text-right">{stats.completed}/5 Completed</p>
           </div>
+        </div>
+      </div>
 
-          <div className="p-6 rounded-3xl bg-[var(--bg)] border border-[var(--border)]">
-            <h3 className="font-bold text-sm opacity-50 uppercase tracking-widest mb-4">Focus Areas</h3>
-            <ul className="space-y-4">
-              {tasks.slice(0, 3).map((t, i) => (
-                <li key={i} className="flex items-center gap-3 text-sm">
-                  <div className={`w-2 h-2 rounded-full ${t.priority === 'high' ? 'bg-red-500' : 'bg-blue-500'}`} />
-                  <span className="truncate flex-1 font-medium">{t.title}</span>
-                  <span className="opacity-40 text-xs">{t.estimatedHours}h</span>
-                </li>
-              ))}
-              {tasks.length === 0 && <span className="text-sm opacity-40">Nothing to focus on yet.</span>}
-            </ul>
-          </div>
+      {/* Quick Actions Section (Moved to new row) */}
+      <div className="space-y-6">
+        <h2 className="text-xl font-bold flex items-center gap-2"><Zap className="w-5 h-5 text-amber-500" /> Quick Actions</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {[
+            { label: "New Task", href: "/tasks", color: "bg-blue-500" },
+            { label: "Timetable", href: "/timetable", color: "bg-emerald-500" },
+            { label: "Profile", href: "/profile", color: "bg-purple-500" },
+            { label: "Settings", href: "/settings", color: "bg-gray-500" },
+          ].map((action, i) => (
+            <Link key={i} href={action.href}>
+              <div className="h-24 rounded-2xl bg-[var(--s-btn)] border border-[var(--border)] hover:border-[var(--text)] transition-all flex flex-col items-center justify-center gap-2 group cursor-pointer hover:shadow-lg">
+                <div className={`w-8 h-8 rounded-full ${action.color} opacity-20 group-hover:opacity-100 transition-all`} />
+                <span className="text-xs font-bold">{action.label}</span>
+              </div>
+            </Link>
+          ))}
         </div>
       </div>
     </div>
