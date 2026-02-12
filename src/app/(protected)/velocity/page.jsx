@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import SchedulerTrigger from "@/components/SchedulerTrigger";
-import { FiPlus, FiBookOpen, FiClock, FiCalendar, FiCheckCircle, FiAlertCircle, FiChevronRight } from "react-icons/fi";
+import DateTimePicker from "@/components/DateTimePicker";
+import { FiPlus, FiBookOpen, FiClock, FiCalendar, FiCheckCircle, FiAlertCircle, FiChevronRight, FiTrendingUp, FiTarget } from "react-icons/fi";
 
 export default function PlannerPage() {
   const [sessions, setSessions] = useState([]);
@@ -18,7 +19,7 @@ export default function PlannerPage() {
   const [taskForm, setTaskForm] = useState({
     title: "",
     courseName: "",
-    deadline: "",
+    deadline: new Date().toISOString(),
     estimatedHours: 2,
     priority: "medium"
   });
@@ -65,7 +66,7 @@ export default function PlannerPage() {
       });
       if (res.ok) {
         setMessage("Task added!");
-        setTaskForm({ title: "", courseName: "", deadline: "", estimatedHours: 2, priority: "medium" });
+        setTaskForm({ title: "", courseName: "", deadline: new Date().toISOString(), estimatedHours: 2, priority: "medium" });
         setShowTaskForm(false);
         fetchData(); // Refresh all
       }
@@ -112,9 +113,13 @@ export default function PlannerPage() {
   const getDates = () => {
     const dates = [];
     const today = new Date();
-    for (let i = 0; i < 14; i++) {
-      const d = new Date(today);
-      d.setDate(today.getDate() + i);
+    // Start from 2 days ago to give some context
+    const start = new Date(today);
+    start.setDate(today.getDate() - 2);
+
+    for (let i = 0; i < 16; i++) {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
       dates.push(d);
     }
     return dates;
@@ -126,223 +131,324 @@ export default function PlannerPage() {
       d1.getFullYear() === d2.getFullYear();
   };
 
+  const hasTasksOnDate = (date) => {
+    // Check if there are tasks with deadline on this date OR sessions scheduled
+    const taskExists = tasks.some(t => isSameDay(new Date(t.deadline), date));
+    const sessionExists = sessions.some(s => isSameDay(new Date(s.startTime), date));
+    return taskExists || sessionExists;
+  };
+
   const filteredSessions = sessions.filter(s => isSameDay(new Date(s.startTime), selectedDate));
 
   return (
-    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors duration-300">
+      <div className="max-w-7xl mx-auto p-6 md:p-10 space-y-10">
 
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Smart Planner</h1>
-          <p className="text-gray-600 dark:text-gray-400">Balance your academic life</p>
-        </div>
-        <SchedulerTrigger onPlanGenerated={fetchData} />
-      </div>
+        {/* Header Section */}
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 pb-6 border-b border-[var(--border)]">
+          <div className="space-y-1">
+            <h1 className="text-4xl font-bold tracking-tight">Velocity</h1>
+            <p className="text-sm opacity-60 font-medium flex items-center gap-2">
+              <FiTrendingUp className="text-emerald-500" />
+              Build momentum with a balanced schedule
+            </p>
+          </div>
+          <SchedulerTrigger onPlanGenerated={fetchData} />
+        </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
-        {/* LEFT COLUMN: Workload (Tasks) */}
-        <div className="lg:col-span-1 space-y-6">
+          {/* LEFT COLUMN: Tasks (4 cols) */}
+          <div className="lg:col-span-4 space-y-6">
 
-          {/* Workload Header & Add Button */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4">
-            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-800 dark:text-white">
-              <FiBookOpen className="text-indigo-500" /> Pending Workload
-            </h2>
-
-            <div className="mb-4">
-              <button
-                onClick={() => setShowTaskForm(!showTaskForm)}
-                className="w-full flex items-center justify-center gap-2 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300 rounded-lg hover:bg-indigo-100 transition text-sm font-medium"
-              >
-                <FiPlus /> Add Task
-              </button>
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <FiBookOpen className="text-blue-500" />
+                <span>Task Queue</span>
+              </h2>
+              <span className="text-xs font-bold px-2 py-1 rounded-full bg-[var(--s-btn)] opacity-70">
+                {tasks.length} Pending
+              </span>
             </div>
 
-            {/* FORMS (Conditional) */}
+            <button
+              onClick={() => setShowTaskForm(!showTaskForm)}
+              className="w-full py-3 rounded-xl border-2 border-dashed border-[var(--border)] hover:border-blue-500 hover:bg-blue-50/10 hover:text-blue-500 transition-all text-sm font-bold flex items-center justify-center gap-2 opacity-70 hover:opacity-100"
+            >
+              <FiPlus size={16} /> Add New Assignment
+            </button>
+
+            {/* Task Form */}
             {showTaskForm && (
-              <form onSubmit={handleTaskSubmit} className="space-y-3 mb-4 p-4 border rounded-xl bg-gray-50 dark:bg-gray-700/50">
-                <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">New Assignment</h3>
-                <input className="w-full p-2 text-sm border rounded-lg bg-white dark:bg-gray-800" placeholder="Title" value={taskForm.title} onChange={e => setTaskForm({ ...taskForm, title: e.target.value })} required />
-                <select className="w-full p-2 text-sm border rounded-lg bg-white dark:bg-gray-800" value={taskForm.courseName} onChange={e => setTaskForm({ ...taskForm, courseName: e.target.value })} required>
-                  <option value="">Select Course</option>
-                  {courses.map((c, i) => <option key={i} value={c}>{c}</option>)}
-                </select>
-                <input type="datetime-local" className="w-full p-2 text-sm border rounded-lg bg-white dark:bg-gray-800" value={taskForm.deadline} onChange={e => setTaskForm({ ...taskForm, deadline: e.target.value })} required />
-                <input type="number" placeholder="Est. Hours" className="w-full p-2 text-sm border rounded-lg bg-white dark:bg-gray-800" value={taskForm.estimatedHours} onChange={e => setTaskForm({ ...taskForm, estimatedHours: e.target.value })} required />
-                <select className="w-full p-2 text-sm border rounded-lg bg-white dark:bg-gray-800" value={taskForm.priority} onChange={e => setTaskForm({ ...taskForm, priority: e.target.value })} required>
-                  <option value="medium">Medium Priority</option>
-                  <option value="high">High Priority</option>
-                  <option value="low">Low Priority</option>
-                </select>
-                <button type="submit" className="w-full py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition">Save Task</button>
+              <form onSubmit={handleTaskSubmit} className="p-5 rounded-2xl bg-[var(--bg)] border border-[var(--border)] shadow-xl animate-in fade-in slide-in-from-top-2 space-y-4">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="font-bold text-sm">New Task</h3>
+                  <button type="button" onClick={() => setShowTaskForm(false)} className="text-xs opacity-50 hover:opacity-100">Cancel</button>
+                </div>
+
+                <div className="space-y-3">
+                  <input
+                    className="w-full bg-[var(--s-btn)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500/50"
+                    placeholder="Task Title..."
+                    value={taskForm.title}
+                    onChange={e => setTaskForm({ ...taskForm, title: e.target.value })}
+                    required
+                  />
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <select
+                      className="w-full bg-[var(--s-btn)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm outline-none cursor-pointer"
+                      value={taskForm.courseName}
+                      onChange={e => setTaskForm({ ...taskForm, courseName: e.target.value })}
+                      required
+                    >
+                      <option value="">Course</option>
+                      {courses.map((c, i) => <option key={i} value={c}>{c}</option>)}
+                    </select>
+
+                    <select
+                      className="w-full bg-[var(--s-btn)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm outline-none cursor-pointer"
+                      value={taskForm.priority}
+                      onChange={e => setTaskForm({ ...taskForm, priority: e.target.value })}
+                      required
+                    >
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                      <option value="low">Low</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="relative z-20">
+                      <DateTimePicker
+                        value={taskForm.deadline}
+                        onChange={(dateStr) => setTaskForm({ ...taskForm, deadline: dateStr })}
+                        label="Due Date"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold opacity-70 mb-1.5">Est. Duration(hrs)</label>
+                      <input
+                        type="number"
+                        placeholder="Hours"
+                        className="w-full bg-[var(--s-btn)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm outline-none"
+                        value={taskForm.estimatedHours}
+                        onChange={e => setTaskForm({ ...taskForm, estimatedHours: e.target.value })}
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <button type="submit" className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold shadow-lg shadow-blue-500/20 transition-all">
+                  Create Task
+                </button>
               </form>
             )}
 
-            {/* LISTS */}
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-xs font-bold text-gray-500 uppercase mb-3 px-1">Pending Tasks</h3>
-                {tasks.length === 0 ? <p className="text-sm text-gray-400 italic px-1">No pending tasks.</p> : (
-                  <div className="space-y-3">
-                    {tasks.map(task => (
-                      <div key={task._id} className="relative p-3 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg shadow-sm hover:border-indigo-200 transition group">
+            {/* Task List */}
+            <div className="space-y-3 max-h-[600px] overflow-y-auto scrollbar-hide pr-1">
+              {loading ? (
+                <div className="space-y-3 opacity-50 animate-pulse">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="h-16 bg-[var(--s-btn)] rounded-xl border border-[var(--border)]" />
+                  ))}
+                </div>
+              ) : tasks.length === 0 ? (
+                <div className="text-center py-12 opacity-40">
+                  <FiCheckCircle className="mx-auto text-4xl mb-3" />
+                  <p className="text-sm">No pending tasks. You're all clear!</p>
+                </div>
+              ) : (
+                tasks.map(task => (
+                  <div key={task._id} className="group relative bg-[var(--bg)] border border-[var(--border)] rounded-xl p-4 hover:border-blue-500/50 hover:shadow-lg transition-all duration-300">
 
-                        {/* Actions (Always Visible) */}
-                        <div className="absolute top-2 right-2 flex gap-1 z-20">
+                    {/* Priority Stripe */}
+                    <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-xl ${task.priority === 'high' ? 'bg-red-500' :
+                      task.priority === 'low' ? 'bg-emerald-500' : 'bg-amber-500'
+                      }`} />
+
+                    <div className="pl-3">
+                      <div className="flex justify-between items-start mb-1">
+                        <span className="text-[10px] font-bold uppercase tracking-widest opacity-50">
+                          {task.courseId?.name || "General"}
+                        </span>
+
+                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
-                            onClick={(e) => { e.stopPropagation(); handleTaskComplete(task._id); }}
-                            title="Mark as Completed"
-                            className="text-gray-400 hover:text-green-500 hover:bg-green-50 p-1 rounded transition-colors"
+                            onClick={() => handleTaskComplete(task._id)}
+                            className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500 hover:text-white transition-colors"
+                            title="Complete"
                           >
-                            <FiCheckCircle size={15} />
+                            <FiCheckCircle size={14} />
                           </button>
                           <button
-                            onClick={(e) => { e.stopPropagation(); handleTaskDelete(task._id); }}
-                            title="Delete Task"
-                            className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1 rounded transition-colors"
+                            onClick={() => handleTaskDelete(task._id)}
+                            className="p-1.5 rounded-lg bg-red-500/10 text-red-600 hover:bg-red-500 hover:text-white transition-colors"
+                            title="Delete"
                           >
-                            <FiAlertCircle size={15} />
+                            <FiAlertCircle size={14} />
                           </button>
-                        </div>
-
-                        <div className="flex justify-between items-start mb-1 pr-14">
-                          <p className="font-semibold text-sm text-gray-800 dark:text-gray-200 truncate">{task.title}</p>
-                        </div>
-
-                        <div className="flex justify-between items-center mt-2">
-                          <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded border ${task.priority === 'high' ? 'bg-red-50 text-red-600 border-red-100' : 'bg-gray-50 text-gray-600 border-gray-100'}`}>
-                            {task.priority || 'Normal'}
-                          </span>
-                          <div className="text-xs text-gray-500 flex items-center gap-2">
-                            <span className="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-600 dark:text-gray-300">
-                              {task.courseId?.name}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="flex justify-end items-center mt-2 text-xs text-gray-500 gap-3">
-                          <span className="flex items-center gap-1"><FiClock size={10} /> {task.estimatedHours}h</span>
-                          <span>{new Date(task.deadline).toLocaleDateString()}</span>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
 
-        {/* RIGHT COLUMN: Schedule View */}
-        <div className="lg:col-span-2 space-y-6">
+                      <h3 className="font-bold text-sm mb-2 pr-8 leading-snug">{task.title}</h3>
 
-          {/* Date Picker */}
-          <div className="flex overflow-x-auto pb-2 gap-3 scrollbar-hide">
-            {getDates().map((date, i) => {
-              const isSelected = isSameDay(date, selectedDate);
-              return (
-                <button
-                  key={i}
-                  onClick={() => setSelectedDate(date)}
-                  className={`flex-shrink-0 flex flex-col items-center justify-center w-14 h-18 py-3 rounded-2xl border transition-all duration-200 ${isSelected ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-200 transform -translate-y-1' : 'bg-white dark:bg-gray-800 border-transparent text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`}
-                >
-                  <span className="text-[10px] font-bold uppercase tracking-wider">{date.toLocaleDateString('en-US', { weekday: 'short' })}</span>
-                  <span className="text-xl font-bold mt-1">{date.getDate()}</span>
-                </button>
-              )
-            })}
-          </div>
-
-          {/* Daily Timeline */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 min-h-[500px] relative">
-            <div className="flex justify-between items-end mb-8 border-b border-gray-50 pb-4">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {selectedDate.toLocaleDateString('en-US', { weekday: 'long' })}
-                </h2>
-                <p className="text-gray-500 dark:text-gray-400 mt-1">
-                  {selectedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                </p>
-              </div>
-              <div className="text-sm font-medium text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">
-                {filteredSessions.length} Sessions
-              </div>
-            </div>
-
-            {loading ? (
-              <div className="text-center py-20 text-gray-400 animate-pulse">Loading schedule...</div>
-            ) : filteredSessions.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 text-center">
-                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
-                  <FiCalendar size={24} className="text-gray-300" />
-                </div>
-                <p className="text-gray-900 font-medium text-lg">No sessions planned</p>
-                <p className="text-sm text-gray-400 mt-2 max-w-xs mx-auto">Enjoy your free time, or add some tasks to get started!</p>
-              </div>
-            ) : (
-              <div className="relative border-l border-indigo-100 dark:border-gray-700 ml-3 space-y-6">
-                {filteredSessions.map((session, idx) => {
-                  const startTime = new Date(session.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-                  const endTime = new Date(session.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-
-                  return (
-                    <div key={session._id} className="relative group pl-8">
-                      {/* Timeline Dot */}
-                      <div className="absolute -left-[5px] top-5 w-2.5 h-2.5 rounded-full ring-4 ring-white dark:ring-gray-800 bg-indigo-500 z-10" />
-
-                      {/* Card */}
-                      <div className="group-hover:translate-x-1 transition-transform duration-200">
-                        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-indigo-200 dark:hover:border-indigo-900 hover:shadow-md transition-all p-5">
-
-                          {/* Time & Duration Header */}
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              <span className="font-mono text-xl font-light text-indigo-600 dark:text-indigo-400 tracking-tight">
-                                {startTime}
-                              </span>
-                              <span className="text-gray-300 text-sm">—</span>
-                              <span className="font-mono text-xl font-light text-indigo-600 dark:text-indigo-400 tracking-tight">
-                                {endTime}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wider bg-gray-50 px-2 py-1 rounded">
-                              <FiClock size={12} /> {session.actualDuration}m
-                            </div>
-                          </div>
-
-                          {/* Content */}
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100">
-                                {session.title}
-                              </h3>
-                              {/* Difficulty Badge */}
-                              {session.taskId && session.taskId.difficulty && (
-                                <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border border-gray-100 text-gray-500">
-                                  Difficulty: {session.taskId.difficulty}
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Action Icon (Optional decorative) */}
-                            <div className="text-gray-200 group-hover:text-indigo-200 transition">
-                              <FiChevronRight size={20} />
-                            </div>
-                          </div>
-
+                      <div className="flex items-center gap-4 text-xs opacity-60 font-medium">
+                        <div className="flex items-center gap-1.5">
+                          <FiClock size={12} />
+                          <span>{task.estimatedHours}h</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <FiCalendar size={12} />
+                          <span>{new Date(task.deadline).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
                         </div>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
+                  </div>
+                ))
+              )}
+            </div>
+
           </div>
 
+          {/* RIGHT COLUMN: Schedule (8 cols) */}
+          <div className="lg:col-span-8 flex flex-col h-full bg-[var(--s-btn)]/30 rounded-3xl border border-[var(--border)] overflow-hidden">
+
+            {/* Styled Date Strip to match user request */}
+            <div className="bg-[#0f1115] border-b border-[var(--border)] p-6">
+              <div className="flex overflow-x-auto gap-3 scrollbar-hide pb-2">
+                {getDates().map((date, i) => {
+                  const isSelected = isSameDay(date, selectedDate);
+                  const isToday = isSameDay(date, new Date());
+                  const hasTask = hasTasksOnDate(date);
+
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => setSelectedDate(date)}
+                      className={`flex-shrink-0 flex flex-col items-center justify-center w-[72px] h-[90px] rounded-2xl border transition-all duration-300 relative group overflow-hidden ${isSelected
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-[0_0_20px_-5px_rgba(37,99,235,0.6)] z-10'
+                        : isToday
+                          ? 'bg-[#18181b] border-white/50 text-white shadow-sm'
+                          : 'bg-[#18181b] border-transparent text-gray-400 hover:bg-[#202025] hover:text-gray-200'
+                        }`}
+                    >
+                      {/* Day Name */}
+                      <span className={`text-[11px] font-black uppercase tracking-widest mb-1 ${isSelected ? 'text-blue-100' : 'opacity-40'}`}>
+                        {date.toLocaleDateString('en-US', { weekday: 'short' })}
+                      </span>
+
+                      {/* Date Number */}
+                      <span className={`text-2xl font-bold ${isSelected ? 'text-white' : 'text-gray-300'}`}>
+                        {date.getDate()}
+                      </span>
+
+                      {/* Task Dot Indicator */}
+                      {hasTask && (
+                        <span className={`w-1.5 h-1.5 rounded-full mt-2 transition-all ${isSelected ? 'bg-white' : 'bg-gray-500 group-hover:bg-gray-400'
+                          }`} />
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Timeline View */}
+            <div className="flex-1 p-6 md:p-8 overflow-y-auto bg-[var(--bg)] relative">
+              <div className="flex justify-between items-end mb-8">
+                <div>
+                  <h2 className="text-3xl font-bold tracking-tight">
+                    {selectedDate.toLocaleDateString('en-US', { weekday: 'long' })}
+                  </h2>
+                  <p className="opacity-60 font-medium mt-1">
+                    {selectedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                  </p>
+                </div>
+
+                {filteredSessions.length > 0 && (
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-600 text-xs font-bold uppercase tracking-wider">
+                    <FiTarget size={14} />
+                    {filteredSessions.length} Sessions Planned
+                  </div>
+                )}
+              </div>
+
+              {loading ? (
+                <div className="animate-pulse space-y-4">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="h-24 bg-[var(--s-btn)] rounded-2xl" />
+                  ))}
+                </div>
+              ) : filteredSessions.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed border-[var(--border)] rounded-3xl opacity-50">
+                  <FiCalendar size={48} className="mb-4 text-[var(--text)]" />
+                  <p className="font-bold text-lg">No sessions planned</p>
+                  <p className="text-sm">Enjoy your day or generate a new plan!</p>
+                </div>
+              ) : (
+                <div className="relative pl-8 space-y-8 before:absolute before:left-[19px] before:top-4 before:bottom-4 before:w-[2px] before:bg-gradient-to-b before:from-blue-500 before:to-transparent before:opacity-20">
+                  {filteredSessions.map((session, idx) => {
+                    const startTime = new Date(session.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+                    const endTime = new Date(session.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+                    const isBreak = session.title.toLowerCase().includes('break');
+
+                    return (
+                      <div key={session._id} className="relative group">
+                        {/* Timeline Dot */}
+                        <div className={`absolute -left-[24px] top-6 w-3 h-3 rounded-full border-2 border-[var(--bg)] shadow-sm z-10 ${isBreak ? 'bg-amber-400' : 'bg-blue-500'
+                          }`} />
+
+                        {/* Card */}
+                        <div className={`rounded-2xl border p-5 transition-all duration-300 hover:scale-[1.01] hover:shadow-xl ${isBreak
+                          ? 'bg-amber-500/5 border-amber-500/20'
+                          : 'bg-[var(--bg)] border-[var(--border)] hover:border-blue-500/30'
+                          }`}>
+                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+
+                            {/* Time */}
+                            <div className="flex items-center gap-3">
+                              <div className="px-3 py-2 rounded-xl bg-[var(--s-btn)] text-xs font-mono font-bold tracking-tight opacity-70">
+                                {startTime} — {endTime}
+                              </div>
+                              <span className="text-xs font-bold uppercase tracking-wider opacity-40">
+                                {session.actualDuration} min
+                              </span>
+                            </div>
+
+                            {/* Title */}
+                            <div className="flex-1">
+                              <h3 className={`text-lg font-bold ${isBreak ? 'text-amber-600 dark:text-amber-500' : ''}`}>
+                                {session.title}
+                              </h3>
+                              {session.taskId?.difficulty && (
+                                <span className={`inline-block mt-1 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded ${session.taskId.difficulty === 'hard' ? 'bg-red-500/10 text-red-500' :
+                                  session.taskId.difficulty === 'medium' ? 'bg-orange-500/10 text-orange-500' :
+                                    'bg-emerald-500/10 text-emerald-500'
+                                  }`}>
+                                  {session.taskId.difficulty}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Action arrow */}
+                            <div className="opacity-0 group-hover:opacity-100 transition-opacity text-[var(--p-btn)]">
+                              <FiChevronRight size={24} />
+                            </div>
+
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 }
+
