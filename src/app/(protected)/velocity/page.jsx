@@ -310,7 +310,7 @@ export default function PlannerPage() {
           <div className="lg:col-span-8 flex flex-col h-full bg-[var(--s-btn)]/30 rounded-3xl border border-[var(--border)] overflow-hidden">
 
             {/* Styled Date Strip to match user request */}
-            <div className="bg-[#0f1115] border-b border-[var(--border)] p-6">
+            <div className="bg-[var(--bg)] border-b border-[var(--border)] p-6">
               <div className="flex overflow-x-auto gap-3 scrollbar-hide pb-2">
                 {getDates().map((date, i) => {
                   const isSelected = isSameDay(date, selectedDate);
@@ -324,8 +324,8 @@ export default function PlannerPage() {
                       className={`flex-shrink-0 flex flex-col items-center justify-center w-[72px] h-[90px] rounded-2xl border transition-all duration-300 relative group overflow-hidden ${isSelected
                         ? 'bg-blue-600 text-white border-blue-600 shadow-[0_0_20px_-5px_rgba(37,99,235,0.6)] z-10'
                         : isToday
-                          ? 'bg-[#18181b] border-white/50 text-white shadow-sm'
-                          : 'bg-[#18181b] border-transparent text-gray-400 hover:bg-[#202025] hover:text-gray-200'
+                          ? 'bg-[var(--s-btn)] border-[var(--text)]/20 text-[var(--text)] shadow-sm'
+                          : 'bg-[var(--s-btn)] border-transparent text-[var(--text)]/40 hover:bg-[var(--s-btn)]/80 hover:text-[var(--text)]'
                         }`}
                     >
                       {/* Day Name */}
@@ -334,7 +334,7 @@ export default function PlannerPage() {
                       </span>
 
                       {/* Date Number */}
-                      <span className={`text-2xl font-bold ${isSelected ? 'text-white' : 'text-gray-300'}`}>
+                      <span className={`text-2xl font-bold ${isSelected ? 'text-white' : 'text-[var(--text)]/80'}`}>
                         {date.getDate()}
                       </span>
 
