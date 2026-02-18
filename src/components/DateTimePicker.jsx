@@ -140,7 +140,7 @@ export default function DateTimePicker({ value, onChange, label }) {
 
             {/* Date Popover */}
             {mode === 'date' && (
-                <div className="absolute top-full left-0 z-50 mt-2 w-[280px] bg-[#0f1115] border border-[var(--border)] rounded-xl shadow-2xl p-4 animate-in fade-in zoom-in-95 duration-200">
+                <div className="absolute top-full left-0 z-50 mt-2 w-[280px] bg-[var(--bg)] border border-[var(--border)] rounded-xl shadow-2xl p-4 animate-in fade-in zoom-in-95 duration-200">
                     <div className="flex items-center justify-between mb-4 pb-2 border-b border-[var(--border)]">
                         <button type="button" onClick={() => changeMonth(-1)} className="p-1 hover:bg-[var(--s-btn)] rounded-lg transition-colors"><FiChevronLeft size={16} /></button>
                         <div className="text-sm font-bold tracking-wide">{viewDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</div>
@@ -158,7 +158,7 @@ export default function DateTimePicker({ value, onChange, label }) {
                                 <button key={i} type="button" onClick={() => handleDateClick(date)}
                                     className={`h-8 w-8 text-xs rounded-lg flex items-center justify-center transition-all ${isSelected ? 'bg-blue-600 text-white font-bold shadow-lg shadow-blue-500/30' :
                                         isToday ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30' :
-                                            'hover:bg-[var(--s-btn)] text-[var(--text)]/70 hover:text-white'
+                                            'hover:bg-[var(--s-btn)] text-[var(--text)] hover:text-[var(--p-btn)]'
                                         }`}
                                 >{date.getDate()}</button>
                             );
@@ -169,7 +169,7 @@ export default function DateTimePicker({ value, onChange, label }) {
 
             {/* Time Popover */}
             {mode === 'time' && (
-                <div className="absolute top-full right-0 z-50 mt-2 w-[160px] bg-[#0f1115] border border-[var(--border)] rounded-xl shadow-2xl p-3 animate-in fade-in zoom-in-95 duration-200">
+                <div className="absolute top-full right-0 z-50 mt-2 w-[160px] bg-[var(--bg)] border border-[var(--border)] rounded-xl shadow-2xl p-3 animate-in fade-in zoom-in-95 duration-200">
                     <div className="text-[10px] font-bold opacity-40 uppercase tracking-wider mb-2 flex items-center gap-1 justify-center">
                         <FiClock size={10} /> Select Time
                     </div>
@@ -177,14 +177,14 @@ export default function DateTimePicker({ value, onChange, label }) {
                         <div className="flex-1 overflow-y-auto scrollbar-hide bg-[var(--s-btn)]/30 rounded-lg">
                             {hours.map(h => (
                                 <button key={h} type="button" onClick={() => handleTimeChange('hour', h)}
-                                    className={`w-full py-1.5 text-[10px] font-mono hover:bg-white/10 ${selectedDate.getHours() === h ? 'bg-blue-600 text-white font-bold' : 'opacity-60'}`}
+                                    className={`w-full py-1.5 text-[10px] font-mono hover:bg-[var(--text)]/10 ${selectedDate.getHours() === h ? 'bg-blue-600 text-white font-bold' : 'opacity-60'}`}
                                 >{h.toString().padStart(2, '0')}</button>
                             ))}
                         </div>
                         <div className="flex-1 overflow-y-auto scrollbar-hide bg-[var(--s-btn)]/30 rounded-lg">
                             {minutes.map(m => (
                                 <button key={m} type="button" onClick={() => handleTimeChange('minute', m)}
-                                    className={`w-full py-1.5 text-[10px] font-mono hover:bg-white/10 ${(Math.abs(selectedDate.getMinutes() - m) < 5 && Math.floor(selectedDate.getMinutes() / 5) * 5 === m) ? 'bg-blue-600 text-white font-bold' : 'opacity-60'
+                                    className={`w-full py-1.5 text-[10px] font-mono hover:bg-[var(--text)]/10 ${(Math.abs(selectedDate.getMinutes() - m) < 5 && Math.floor(selectedDate.getMinutes() / 5) * 5 === m) ? 'bg-blue-600 text-white font-bold' : 'opacity-60'
                                         }`}
                                 >{m.toString().padStart(2, '0')}</button>
                             ))}
