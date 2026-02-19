@@ -105,6 +105,8 @@ export default function DashboardPage() {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good Morning" : hour < 18 ? "Good Afternoon" : "Good Evening";
 
+  const isOverdue = stats.nextDeadline && new Date(stats.nextDeadline.deadline) < new Date();
+
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
 
@@ -170,27 +172,27 @@ export default function DashboardPage() {
           </div>
 
           {stats.nextDeadline ? (
-            <div className="flex-1 p-6 rounded-3xl bg-[var(--bg)] border-2 border-dashed border-[var(--border)] hover:border-blue-500/30 transition-all group relative overflow-hidden flex flex-col">
+            <div className={`flex-1 p-6 rounded-3xl bg-[var(--bg)] border-2 border-dashed ${isOverdue ? "border-red-500 bg-red-500/5 hover:border-red-600" : "border-[var(--border)] hover:border-blue-500/30"} transition-all group relative overflow-hidden flex flex-col`}>
               <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                <AlertTriangle className="w-24 h-24 text-[var(--text)]" />
+                <AlertTriangle className={`w-24 h-24 ${isOverdue ? "text-red-500" : "text-[var(--text)]"}`} />
               </div>
 
               <div className="relative z-10 flex-1 flex flex-col justify-center">
                 <div className="flex gap-2 mb-4">
-                  <span className="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider">
-                    Due Soon
+                  <span className={`${isOverdue ? "bg-red-600 animate-pulse" : "bg-red-500"} text-white text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider`}>
+                    {isOverdue ? "Overdue!" : "Due Soon"}
                   </span>
                   <span className="bg-[var(--s-btn)] text-[var(--text)] text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">
                     {stats.nextDeadline.courseId?.name || "General"}
                   </span>
                 </div>
 
-                <h3 className="text-2xl font-bold mb-2 group-hover:text-blue-500 transition-colors">
+                <h3 className={`text-2xl font-bold mb-2 ${isOverdue ? "text-red-500" : "group-hover:text-blue-500"} transition-colors`}>
                   {stats.nextDeadline.title}
                 </h3>
 
                 <div className="flex gap-6 text-sm opacity-60">
-                  <span className="flex items-center gap-2">
+                  <span className={`flex items-center gap-2 ${isOverdue ? "text-red-500 font-bold opacity-100" : ""}`}>
                     <Clock className="w-3 h-3" />
                     Due on {new Date(stats.nextDeadline.deadline).toLocaleDateString()}
                   </span>
@@ -202,8 +204,8 @@ export default function DashboardPage() {
 
                 <div className="mt-6">
                   <Link href="/tasks">
-                    <button className="px-6 py-2.5 rounded-xl bg-[var(--p-btn)] text-[var(--p-btn-txt)] font-bold text-sm hover:scale-105 active:scale-95 transition-all">
-                      Start Working
+                    <button className={`px-6 py-2.5 rounded-xl ${isOverdue ? "bg-red-500 hover:bg-red-600" : "bg-[var(--p-btn)]"} text-[var(--p-btn-txt)] font-bold text-sm hover:scale-105 active:scale-95 transition-all`}>
+                      {isOverdue ? "Complete Now" : "Start Working"}
                     </button>
                   </Link>
                 </div>

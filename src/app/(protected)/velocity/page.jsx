@@ -270,53 +270,67 @@ export default function PlannerPage() {
                   <p className="text-sm">No pending tasks. You're all clear!</p>
                 </div>
               ) : (
-                tasks.map(task => (
-                  <div key={task._id} className="group relative bg-[var(--bg)] border border-[var(--border)] rounded-xl p-4 hover:border-blue-500/50 hover:shadow-lg transition-all duration-300">
+                tasks.map(task => {
+                  const isOverdue = new Date(task.deadline) < new Date() && task.status !== 'completed';
+                  return (
+                    <div key={task._id} className={`group relative bg-[var(--bg)] border rounded-xl p-4 transition-all duration-300 ${isOverdue
+                        ? "border-red-500 bg-red-500/5 hover:border-red-600 shadow-sm"
+                        : "border-[var(--border)] hover:border-blue-500/50 hover:shadow-lg"
+                      }`}>
 
-                    {/* Priority Stripe */}
-                    <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-xl ${task.priority === 'high' ? 'bg-red-500' :
-                      task.priority === 'low' ? 'bg-emerald-500' : 'bg-amber-500'
-                      }`} />
+                      {/* Priority Stripe */}
+                      <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-xl ${isOverdue ? 'bg-red-600' :
+                          task.priority === 'high' ? 'bg-red-500' :
+                            task.priority === 'low' ? 'bg-emerald-500' : 'bg-amber-500'
+                        }`} />
 
-                    <div className="pl-3">
-                      <div className="flex justify-between items-start mb-1">
-                        <span className="text-[10px] font-bold uppercase tracking-widest opacity-50">
-                          {task.courseId?.name || "General"}
-                        </span>
+                      <div className="pl-3">
+                        <div className="flex justify-between items-start mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[10px] font-bold uppercase tracking-widest ${isOverdue ? "text-red-500" : "opacity-50"}`}>
+                              {task.courseId?.name || "General"}
+                            </span>
+                            {isOverdue && (
+                              <span className="bg-red-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider animate-pulse">
+                                Overdue
+                              </span>
+                            )}
+                          </div>
 
-                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => handleTaskComplete(task._id)}
-                            className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500 hover:text-white transition-colors"
-                            title="Complete"
-                          >
-                            <FiCheckCircle size={14} />
-                          </button>
-                          <button
-                            onClick={() => handleTaskDelete(task._id)}
-                            className="p-1.5 rounded-lg bg-red-500/10 text-red-600 hover:bg-red-500 hover:text-white transition-colors"
-                            title="Delete"
-                          >
-                            <FiAlertCircle size={14} />
-                          </button>
+                          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => handleTaskComplete(task._id)}
+                              className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500 hover:text-white transition-colors"
+                              title="Complete"
+                            >
+                              <FiCheckCircle size={14} />
+                            </button>
+                            <button
+                              onClick={() => handleTaskDelete(task._id)}
+                              className="p-1.5 rounded-lg bg-red-500/10 text-red-600 hover:bg-red-500 hover:text-white transition-colors"
+                              title="Delete"
+                            >
+                              <FiAlertCircle size={14} />
+                            </button>
+                          </div>
                         </div>
-                      </div>
 
-                      <h3 className="font-bold text-sm mb-2 pr-8 leading-snug">{task.title}</h3>
+                        <h3 className={`font-bold text-sm mb-2 pr-8 leading-snug ${isOverdue ? "text-red-500" : ""}`}>{task.title}</h3>
 
-                      <div className="flex items-center gap-4 text-xs opacity-60 font-medium">
-                        <div className="flex items-center gap-1.5">
-                          <FiClock size={12} />
-                          <span>{task.estimatedHours}h</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <FiCalendar size={12} />
-                          <span>{new Date(task.deadline).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                        <div className={`flex items-center gap-4 text-xs font-medium ${isOverdue ? "text-red-500 opacity-100" : "opacity-60"}`}>
+                          <div className="flex items-center gap-1.5">
+                            <FiClock size={12} />
+                            <span>{task.estimatedHours}h</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <FiCalendar size={12} />
+                            <span>{new Date(task.deadline).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
 
@@ -326,7 +340,7 @@ export default function PlannerPage() {
           <div className="lg:col-span-8 flex flex-col h-full bg-[var(--s-btn)]/30 rounded-3xl border border-[var(--border)] overflow-hidden">
 
             {/* Styled Date Strip to match user request */}
-            <div className="bg-[#0f1115] border-b border-[var(--border)] p-6">
+            <div className="bg-[var(--bg)] border-b border-[var(--border)] p-6">
               <div className="flex overflow-x-auto gap-3 scrollbar-hide pb-2">
                 {getDates().map((date, i) => {
                   const isSelected = isSameDay(date, selectedDate);
@@ -340,8 +354,8 @@ export default function PlannerPage() {
                       className={`flex-shrink-0 flex flex-col items-center justify-center w-[72px] h-[90px] rounded-2xl border transition-all duration-300 relative group overflow-hidden ${isSelected
                         ? 'bg-blue-600 text-white border-blue-600 shadow-[0_0_20px_-5px_rgba(37,99,235,0.6)] z-10'
                         : isToday
-                          ? 'bg-[#18181b] border-white/50 text-white shadow-sm'
-                          : 'bg-[#18181b] border-transparent text-gray-400 hover:bg-[#202025] hover:text-gray-200'
+                          ? 'bg-[var(--s-btn)] border-[var(--text)]/20 text-[var(--text)] shadow-sm'
+                          : 'bg-[var(--s-btn)] border-transparent text-[var(--text)]/40 hover:bg-[var(--s-btn)]/80 hover:text-[var(--text)]'
                         }`}
                     >
                       {/* Day Name */}
@@ -350,7 +364,7 @@ export default function PlannerPage() {
                       </span>
 
                       {/* Date Number */}
-                      <span className={`text-2xl font-bold ${isSelected ? 'text-white' : 'text-gray-300'}`}>
+                      <span className={`text-2xl font-bold ${isSelected ? 'text-white' : 'text-[var(--text)]/80'}`}>
                         {date.getDate()}
                       </span>
 

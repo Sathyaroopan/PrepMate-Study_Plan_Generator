@@ -143,6 +143,7 @@ graph TD
     Scheduler --> Timetables
     Scheduler --> Sessions
 ```
+![System Architecture](./public/architecture-diagram.png)
 
 ---
 

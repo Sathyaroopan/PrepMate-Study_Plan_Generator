@@ -163,59 +163,72 @@ export default function TasksPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {tasks.map((task) => (
-              <div
-                key={task._id}
-                className="group relative bg-[var(--bg)] border border-[var(--border)] rounded-2xl p-6 hover:border-[var(--p-btn)] transition-all hover:shadow-xl hover:shadow-black/[0.02]"
-              >
-                {/* Edit Button - Visible on Hover */}
-                <button
-                  onClick={() => openEditModal(task)}
-                  className="absolute top-4 right-4 p-2 rounded-lg bg-[var(--s-btn)] opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-500/10 hover:text-blue-500"
-                  title="Edit Task"
+            {tasks.map((task) => {
+              const isOverdue = new Date(task.deadline) < new Date() && task.status !== 'completed';
+              return (
+                <div
+                  key={task._id}
+                  className={`group relative bg-[var(--bg)] border rounded-2xl p-6 transition-all hover:shadow-xl hover:shadow-black/[0.02] ${isOverdue
+                    ? "border-red-500 bg-red-500/5 hover:border-red-600"
+                    : "border-[var(--border)] hover:border-[var(--p-btn)]"
+                    }`}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
-                  </svg>
-                </button>
+                  {/* Edit Button - Visible on Hover */}
+                  <button
+                    onClick={() => openEditModal(task)}
+                    className="absolute top-4 right-4 p-2 rounded-lg bg-[var(--s-btn)] opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-500/10 hover:text-blue-500"
+                    title="Edit Task"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                    </svg>
+                  </button>
 
-                <div className="flex justify-between items-start mb-4 pr-8">
-                  <div className="flex flex-col">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-blue-500 mb-1">
-                      {task.courseId?.name || "Independent"}
-                    </span>
-                    <h2 className="text-xl font-bold group-hover:translate-x-1 transition-transform">
-                      {task.title}
-                    </h2>
+                  <div className="flex justify-between items-start mb-4 pr-8">
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`text-[10px] font-bold uppercase tracking-widest ${isOverdue ? "text-red-500" : "text-blue-500"}`}>
+                          {task.courseId?.name || "Independent"}
+                        </span>
+                        {isOverdue && (
+                          <span className="bg-red-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider animate-pulse">
+                            Overdue
+                          </span>
+                        )}
+                      </div>
+                      <h2 className={`text-xl font-bold group-hover:translate-x-1 transition-transform ${isOverdue ? "text-red-500" : ""}`}>
+                        {task.title}
+                      </h2>
+                    </div>
+                    <PriorityBadge priority={task.priority} />
                   </div>
-                  <PriorityBadge priority={task.priority} />
-                </div>
 
-                <div className="flex items-center justify-between mt-6 pt-4 border-t border-[var(--border)]/50">
-                  <div className="flex items-center gap-4">
-                    <div className="flex flex-col">
-                      <span className="text-[10px] uppercase opacity-40 font-bold">Deadline</span>
-                      <span className="text-sm font-medium">
-                        {new Date(task.deadline).toLocaleString(undefined, {
-                          month: "short",
-                          day: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
+                  <div className={`flex items-center justify-between mt-6 pt-4 border-t ${isOverdue ? "border-red-500/20" : "border-[var(--border)]/50"}`}>
+                    <div className="flex items-center gap-4">
+                      <div className="flex flex-col">
+                        <span className={`text-[10px] uppercase opacity-40 font-bold ${isOverdue ? "text-red-500 opacity-70" : ""}`}>Deadline</span>
+                        <span className={`text-sm font-medium ${isOverdue ? "text-red-500" : ""}`}>
+                          {new Date(task.deadline).toLocaleString(undefined, {
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
+                      <div className={`w-[1px] h-8 ${isOverdue ? "bg-red-500/20" : "bg-[var(--border)]"}`} />
+                      <div className="flex flex-col">
+                        <span className="text-[10px] uppercase opacity-40 font-bold">Estimate</span>
+                        <span className="text-sm font-medium">{task.estimatedHours}h</span>
+                      </div>
                     </div>
-                    <div className="w-[1px] h-8 bg-[var(--border)]" />
-                    <div className="flex flex-col">
-                      <span className="text-[10px] uppercase opacity-40 font-bold">Estimate</span>
-                      <span className="text-sm font-medium">{task.estimatedHours}h</span>
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity ${isOverdue ? "bg-red-500 text-white" : "bg-[var(--s-btn)]"}`}>
+                      <span className="text-xs">→</span>
                     </div>
-                  </div>
-                  <div className="w-10 h-10 rounded-full bg-[var(--s-btn)] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span className="text-xs">→</span>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
