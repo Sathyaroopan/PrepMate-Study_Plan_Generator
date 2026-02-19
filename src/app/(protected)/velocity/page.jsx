@@ -254,53 +254,67 @@ export default function PlannerPage() {
                   <p className="text-sm">No pending tasks. You're all clear!</p>
                 </div>
               ) : (
-                tasks.map(task => (
-                  <div key={task._id} className="group relative bg-[var(--bg)] border border-[var(--border)] rounded-xl p-4 hover:border-blue-500/50 hover:shadow-lg transition-all duration-300">
+                tasks.map(task => {
+                  const isOverdue = new Date(task.deadline) < new Date() && task.status !== 'completed';
+                  return (
+                    <div key={task._id} className={`group relative bg-[var(--bg)] border rounded-xl p-4 transition-all duration-300 ${isOverdue
+                        ? "border-red-500 bg-red-500/5 hover:border-red-600 shadow-sm"
+                        : "border-[var(--border)] hover:border-blue-500/50 hover:shadow-lg"
+                      }`}>
 
-                    {/* Priority Stripe */}
-                    <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-xl ${task.priority === 'high' ? 'bg-red-500' :
-                      task.priority === 'low' ? 'bg-emerald-500' : 'bg-amber-500'
-                      }`} />
+                      {/* Priority Stripe */}
+                      <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-xl ${isOverdue ? 'bg-red-600' :
+                          task.priority === 'high' ? 'bg-red-500' :
+                            task.priority === 'low' ? 'bg-emerald-500' : 'bg-amber-500'
+                        }`} />
 
-                    <div className="pl-3">
-                      <div className="flex justify-between items-start mb-1">
-                        <span className="text-[10px] font-bold uppercase tracking-widest opacity-50">
-                          {task.courseId?.name || "General"}
-                        </span>
+                      <div className="pl-3">
+                        <div className="flex justify-between items-start mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[10px] font-bold uppercase tracking-widest ${isOverdue ? "text-red-500" : "opacity-50"}`}>
+                              {task.courseId?.name || "General"}
+                            </span>
+                            {isOverdue && (
+                              <span className="bg-red-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider animate-pulse">
+                                Overdue
+                              </span>
+                            )}
+                          </div>
 
-                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => handleTaskComplete(task._id)}
-                            className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500 hover:text-white transition-colors"
-                            title="Complete"
-                          >
-                            <FiCheckCircle size={14} />
-                          </button>
-                          <button
-                            onClick={() => handleTaskDelete(task._id)}
-                            className="p-1.5 rounded-lg bg-red-500/10 text-red-600 hover:bg-red-500 hover:text-white transition-colors"
-                            title="Delete"
-                          >
-                            <FiAlertCircle size={14} />
-                          </button>
+                          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => handleTaskComplete(task._id)}
+                              className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500 hover:text-white transition-colors"
+                              title="Complete"
+                            >
+                              <FiCheckCircle size={14} />
+                            </button>
+                            <button
+                              onClick={() => handleTaskDelete(task._id)}
+                              className="p-1.5 rounded-lg bg-red-500/10 text-red-600 hover:bg-red-500 hover:text-white transition-colors"
+                              title="Delete"
+                            >
+                              <FiAlertCircle size={14} />
+                            </button>
+                          </div>
                         </div>
-                      </div>
 
-                      <h3 className="font-bold text-sm mb-2 pr-8 leading-snug">{task.title}</h3>
+                        <h3 className={`font-bold text-sm mb-2 pr-8 leading-snug ${isOverdue ? "text-red-500" : ""}`}>{task.title}</h3>
 
-                      <div className="flex items-center gap-4 text-xs opacity-60 font-medium">
-                        <div className="flex items-center gap-1.5">
-                          <FiClock size={12} />
-                          <span>{task.estimatedHours}h</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <FiCalendar size={12} />
-                          <span>{new Date(task.deadline).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                        <div className={`flex items-center gap-4 text-xs font-medium ${isOverdue ? "text-red-500 opacity-100" : "opacity-60"}`}>
+                          <div className="flex items-center gap-1.5">
+                            <FiClock size={12} />
+                            <span>{task.estimatedHours}h</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <FiCalendar size={12} />
+                            <span>{new Date(task.deadline).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
 
