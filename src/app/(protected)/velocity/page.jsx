@@ -258,14 +258,14 @@ export default function PlannerPage() {
                   const isOverdue = new Date(task.deadline) < new Date() && task.status !== 'completed';
                   return (
                     <div key={task._id} className={`group relative bg-[var(--bg)] border rounded-xl p-4 transition-all duration-300 ${isOverdue
-                        ? "border-red-500 bg-red-500/5 hover:border-red-600 shadow-sm"
-                        : "border-[var(--border)] hover:border-blue-500/50 hover:shadow-lg"
+                      ? "border-red-500 bg-red-500/5 hover:border-red-600 shadow-sm"
+                      : "border-[var(--border)] hover:border-blue-500/50 hover:shadow-lg"
                       }`}>
 
                       {/* Priority Stripe */}
                       <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-xl ${isOverdue ? 'bg-red-600' :
-                          task.priority === 'high' ? 'bg-red-500' :
-                            task.priority === 'low' ? 'bg-emerald-500' : 'bg-amber-500'
+                        task.priority === 'high' ? 'bg-red-500' :
+                          task.priority === 'low' ? 'bg-emerald-500' : 'bg-amber-500'
                         }`} />
 
                       <div className="pl-3">

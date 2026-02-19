@@ -113,6 +113,33 @@ export default function TasksPage() {
     }
   };
 
+  // Filter & Sort State
+  const [viewMode, setViewMode] = useState("recommended");
+
+  // Logic
+  const filteredTasks = tasks
+    .filter((task) => {
+      if (['high', 'medium', 'low'].includes(viewMode)) {
+        return task.priority === viewMode;
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      switch (viewMode) {
+        case "recommended": // Deadline Asc
+        case "high":
+        case "medium":
+        case "low":
+          return new Date(a.deadline) - new Date(b.deadline);
+        case "shortest":
+          return (a.estimatedHours || 0) - (b.estimatedHours || 0);
+        case "longest":
+          return (b.estimatedHours || 0) - (a.estimatedHours || 0);
+        default:
+          return 0;
+      }
+    });
+
   // Helper to calculate total workload
   const totalHours = tasks.reduce((acc, task) => acc + (task.estimatedHours || 0), 0);
 
@@ -132,7 +159,7 @@ export default function TasksPage() {
       <div className="max-w-5xl mx-auto px-6 py-10">
 
         {/* Header Section */}
-        <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+        <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
           <div>
             <h1 className="text-4xl font-bold tracking-tight mb-2">My Tasks</h1>
             <div className="flex gap-4 text-sm opacity-60">
@@ -154,16 +181,37 @@ export default function TasksPage() {
           </button>
         </header>
 
+        {/* Filter Bar */}
+        <div className="flex mb-8">
+          <div className="relative">
+            <select
+              value={viewMode}
+              onChange={(e) => setViewMode(e.target.value)}
+              className="appearance-none bg-[var(--s-btn)] border border-[var(--border)] text-sm font-bold rounded-xl px-4 py-3 pr-10 outline-none focus:ring-2 focus:ring-[var(--p-btn)] cursor-pointer min-w-[200px]"
+            >
+              <option value="recommended">Recommended (Deadline)</option>
+              <option value="high">High Priority</option>
+              <option value="medium">Medium Priority</option>
+              <option value="low">Low Priority</option>
+              <option value="shortest">Shortest Duration</option>
+              <option value="longest">Longest Duration</option>
+            </select>
+            <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none opacity-50">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+            </div>
+          </div>
+        </div>
+
         {/* Task Grid */}
-        {tasks.length === 0 ? (
+        {filteredTasks.length === 0 ? (
           <div className="border-2 border-dashed border-[var(--border)] rounded-3xl py-20 text-center">
-            <p className="text-4xl mb-4">🎉</p>
-            <h3 className="text-lg font-medium opacity-80">All caught up!</h3>
-            <p className="text-sm opacity-50 mt-1">Enjoy your free time or add a new task.</p>
+            <p className="text-4xl mb-4">🔍</p>
+            <h3 className="text-lg font-medium opacity-80">No tasks found</h3>
+            <p className="text-sm opacity-50 mt-1">Try adjusting your filters.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {tasks.map((task) => {
+            {filteredTasks.map((task) => {
               const isOverdue = new Date(task.deadline) < new Date() && task.status !== 'completed';
               return (
                 <div
