@@ -24,22 +24,22 @@ export default function Sidebar() {
         {/* Top Section */}
         <div className="flex-1">
           <div className="p-6">
-            <Image 
-              src="/logo_icon_light.png" 
-              alt="Site Logo" 
-              width={40} 
-              height={40} 
+            <Image
+              src="/logo_icon_light.png"
+              alt="Site Logo"
+              width={40}
+              height={40}
               className="block dark:hidden"
-              priority 
+              priority
             />
-            
-            <Image 
-              src="/logo_icon_dark.png" 
-              alt="Site Logo" 
-              width={40} 
-              height={40} 
+
+            <Image
+              src="/logo_icon_dark.png"
+              alt="Site Logo"
+              width={40}
+              height={40}
               className="hidden dark:block"
-              priority 
+              priority
             />
           </div>
 
@@ -70,10 +70,17 @@ export default function Sidebar() {
               className={`group flex items-center justify-between gap-4 px-4 py-2.5 rounded-lg transition-all duration-200 w-full ${getLinkStyles("/velocity")}`}
             >
               <span className="font-medium">Velocity</span>
-              <Sparkles 
-                size={16} 
-                className="shrink-0 transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110 opacity-70 group-hover:opacity-100" 
+              <Sparkles
+                size={16}
+                className="shrink-0 transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110 opacity-70 group-hover:opacity-100"
               />
+            </Link>
+
+            <Link
+              href="/analytics"
+              className={`px-4 py-2.5 rounded-lg transition-all duration-200 ${getLinkStyles("/analytics")}`}
+            >
+              Analytics
             </Link>
 
             <Link
@@ -105,7 +112,7 @@ export default function Sidebar() {
 
       {/* Logout Confirmation Dialog */}
       {isLogoutOpen && (
-        <div 
+        <div
           className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/20"
           onClick={(e) => {
             // Close only if the backdrop is clicked, not the modal content
@@ -117,7 +124,7 @@ export default function Sidebar() {
             <p className="text-gray-500 dark:text-gray-400 mt-2">
               Are you sure you want to log out? You will need to sign back in to access your data.
             </p>
-            
+
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setIsLogoutOpen(false)}

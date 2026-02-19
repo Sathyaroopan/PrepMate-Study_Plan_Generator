@@ -108,6 +108,22 @@ export default function PlannerPage() {
     }
   };
 
+  const handleSessionComplete = async (sessionId) => {
+    try {
+      const res = await fetch(`/api/studysessions/${sessionId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ completed: true })
+      });
+      if (res.ok) {
+        setMessage("Session marked complete!");
+        fetchData();
+      }
+    } catch (error) {
+      console.error("Failed to complete session", error);
+    }
+  };
+
   // -- Helpers --
 
   const getDates = () => {
@@ -426,9 +442,20 @@ export default function PlannerPage() {
                               )}
                             </div>
 
-                            {/* Action arrow */}
-                            <div className="opacity-0 group-hover:opacity-100 transition-opacity text-[var(--p-btn)]">
-                              <FiChevronRight size={24} />
+                            {/* Action Buttons */}
+                            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              {!session.completed && (
+                                <button
+                                  onClick={() => handleSessionComplete(session._id)}
+                                  className="p-2 rounded-full bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500 hover:text-white transition-all"
+                                  title="Mark Complete"
+                                >
+                                  <FiCheckCircle size={20} />
+                                </button>
+                              )}
+                              <div className="text-[var(--p-btn)]">
+                                <FiChevronRight size={24} />
+                              </div>
                             </div>
 
                           </div>
