@@ -115,8 +115,8 @@ export async function generateStudyPlan(userId, options = {}) {
     const scaleFactor = Math.max(1, Math.min(1.5, workloadRatio));
 
     const CONFIG = {
-        // Time boundaries
-        DAY_START_HOUR: 6,
+        // Time boundaries — if no morning study, start the day at 9 AM
+        DAY_START_HOUR: morningStudy ? 6 : 9,
         DAY_END_HOUR: 22,
 
         // Weekday limits
