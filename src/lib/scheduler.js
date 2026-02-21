@@ -137,9 +137,9 @@ export async function generateStudyPlan(userId, options = {}) {
         PREFERRED_EVENING_START: 17,
 
         // SESSION DISTRIBUTION (balance across time periods)
-        MAX_MORNING_SESSIONS: morningStudy ? 2 : 0,    // Disable morning sessions if user opts out
-        MAX_EVENING_SESSIONS: 2,    // Max 2 sessions in evening
-        MAX_MIDDAY_SESSIONS_WEEKDAY: useFreeSlots ? 2 : 0,  // Disable midday if user opts out of free slots
+        MAX_MORNING_SESSIONS: morningStudy ? 3 : 0,    // Disable morning sessions if user opts out
+        MAX_EVENING_SESSIONS: 3,    // Max 3 sessions in evening
+        MAX_MIDDAY_SESSIONS_WEEKDAY: useFreeSlots ? 3 : 0,  // Disable midday if user opts out of free slots
 
         // Mid-day gaps - USE FREE SLOTS from timetable (controlled by user preference)
         USE_MIDDAY_GAPS: useFreeSlots,
@@ -158,9 +158,7 @@ export async function generateStudyPlan(userId, options = {}) {
 
     // Helper: Check if deadline allows scheduling
     const canScheduleTask = (taskDeadline, cursorTime) => {
-        const deadlineEndOfDay = new Date(taskDeadline);
-        deadlineEndOfDay.setHours(23, 59, 59, 999);
-        return cursorTime < deadlineEndOfDay;
+        return cursorTime < new Date(taskDeadline);
     };
 
     // Helper: Get available tasks for scheduling (with rotation logic)
@@ -315,13 +313,13 @@ export async function generateStudyPlan(userId, options = {}) {
 
         // Interleave morning and evening
         const interleavedIntervals = [];
-        const maxLen = Math.max(morningIntervals.length, eveningIntervals.length);
+        // Interleave morning, midday, and evening for balanced distribution
+        const maxLen = Math.max(morningIntervals.length, middayIntervals.length, eveningIntervals.length);
         for (let i = 0; i < maxLen; i++) {
             if (i < morningIntervals.length) interleavedIntervals.push(morningIntervals[i]);
+            if (i < middayIntervals.length) interleavedIntervals.push(middayIntervals[i]);
             if (i < eveningIntervals.length) interleavedIntervals.push(eveningIntervals[i]);
         }
-        // Add midday at the end (lowest priority)
-        interleavedIntervals.push(...middayIntervals);
 
         // Process each interval (now interleaved)
         for (const interval of interleavedIntervals) {
@@ -374,11 +372,14 @@ export async function generateStudyPlan(userId, options = {}) {
                 const isUrgent = daysUntilDeadline <= CONFIG.URGENT_DAYS_THRESHOLD;
                 const effectiveMaxSession = isUrgent ? 90 : CONFIG.MAX_SESSION_MINUTES;
 
+                const minutesToDeadline = Math.max(0, (item.deadline - cursor) / 60000);
+
                 let sessionDuration = Math.min(
                     item.remainingMinutes,
                     remainingInInterval,
                     effectiveMaxSession,
-                    remainingDailyCapacity
+                    remainingDailyCapacity,
+                    minutesToDeadline
                 );
 
                 if (sessionDuration < CONFIG.MIN_SESSION_MINUTES) break;
