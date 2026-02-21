@@ -100,7 +100,9 @@ export default function VelocityPage() {
     );
   };
 
-  const selectAll = () => setSelectedTaskIds(tasks.map((t) => t._id));
+  const selectAll = () => setSelectedTaskIds(
+    tasks.filter((t) => new Date(t.deadline) >= new Date()).map((t) => t._id)
+  );
   const deselectAll = () => setSelectedTaskIds([]);
 
   const canProceed = () => {
@@ -382,20 +384,25 @@ export default function VelocityPage() {
                     return (
                       <button
                         key={task._id}
-                        onClick={() => toggleTask(task._id)}
+                        onClick={() => !isOverdue && toggleTask(task._id)}
+                        disabled={isOverdue}
                         className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-200 ${
-                          isSelected
-                            ? "border-blue-500 bg-blue-500/5 shadow-sm"
-                            : "border-[var(--border)] hover:border-[var(--border)] hover:bg-[var(--s-btn)]/50"
+                          isOverdue
+                            ? "border-[var(--border)] opacity-40 cursor-not-allowed"
+                            : isSelected
+                              ? "border-blue-500 bg-blue-500/5 shadow-sm"
+                              : "border-[var(--border)] hover:border-[var(--border)] hover:bg-[var(--s-btn)]/50"
                         }`}
                       >
                         <div className="flex items-start gap-3">
                           {/* Checkbox */}
                           <div
                             className={`mt-0.5 w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all ${
-                              isSelected
-                                ? "bg-blue-600 border-blue-600"
-                                : "border-[var(--border)]"
+                              isOverdue
+                                ? "border-[var(--border)] bg-[var(--s-btn)]"
+                                : isSelected
+                                  ? "bg-blue-600 border-blue-600"
+                                  : "border-[var(--border)]"
                             }`}
                           >
                             {isSelected && <FiCheck className="text-white" size={12} />}
