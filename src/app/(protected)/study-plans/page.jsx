@@ -1,0 +1,297 @@
+"use client";
+
+import { useState, useEffect, useMemo } from "react";
+import Link from "next/link";
+import {
+  FiCalendar, FiClock, FiBookOpen, FiTarget, FiTrash2,
+  FiChevronDown, FiChevronUp, FiLoader, FiPlus, FiAlertCircle,
+  FiSun, FiGrid
+} from "react-icons/fi";
+import { Sparkles } from "lucide-react";
+
+export default function StudyPlansPage() {
+  const [plans, setPlans] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [expandedId, setExpandedId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
+
+  const fetchPlans = async () => {
+    try {
+      const res = await fetch("/api/studyplans");
+      if (res.ok) {
+        const data = await res.json();
+        setPlans(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch study plans", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPlans();
+  }, []);
+
+  const handleDelete = async (planId) => {
+    setDeletingId(planId);
+    try {
+      const res = await fetch(`/api/studyplans/${planId}`, { method: "DELETE" });
+      if (res.ok) {
+        setPlans((prev) => prev.filter((p) => p._id !== planId));
+        setShowDeleteConfirm(null);
+      }
+    } catch (err) {
+      console.error("Failed to delete plan", err);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  // Group sessions by date for expanded view
+  const getGroupedSessions = (sessions) => {
+    const groups = {};
+    sessions.forEach((s) => {
+      const dateStr = new Date(s.startTime).toLocaleDateString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+      });
+      if (!groups[dateStr]) groups[dateStr] = [];
+      groups[dateStr].push(s);
+    });
+    return groups;
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <FiLoader className="animate-spin text-4xl text-blue-500" />
+          <p className="text-sm opacity-60 font-medium">Loading study plans...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
+      <div className="max-w-5xl mx-auto p-6 md:p-10 space-y-8">
+
+        {/* Header */}
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b border-[var(--border)]">
+          <div className="space-y-1">
+            <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
+              Study Plans
+              <Sparkles size={22} className="text-amber-500" />
+            </h1>
+            <p className="text-sm opacity-60 font-medium">
+              {plans.length} plan{plans.length !== 1 ? "s" : ""} generated
+            </p>
+          </div>
+          <Link
+            href="/velocity"
+            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-lg shadow-blue-500/20 transition-all"
+          >
+            <FiPlus size={16} /> Create New Plan
+          </Link>
+        </header>
+
+        {/* Plans List */}
+        {plans.length === 0 ? (
+          <div className="text-center py-20 opacity-40">
+            <FiCalendar className="mx-auto text-6xl mb-5" />
+            <p className="font-bold text-xl">No study plans yet</p>
+            <p className="text-sm mt-2 max-w-sm mx-auto">
+              Head to the Velocity page to create your first personalized study plan
+            </p>
+            <Link
+              href="/velocity"
+              className="inline-flex items-center gap-2 mt-6 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-lg shadow-blue-500/20 transition-all"
+            >
+              <Sparkles size={16} /> Create Study Plan
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {plans.map((plan) => {
+              const isExpanded = expandedId === plan._id;
+              const grouped = isExpanded ? getGroupedSessions(plan.sessions || []) : {};
+
+              return (
+                <div
+                  key={plan._id}
+                  className={`bg-[var(--s-btn)] border rounded-2xl transition-all duration-300 overflow-hidden ${
+                    isExpanded
+                      ? "border-blue-500/30 shadow-lg"
+                      : "border-[var(--border)] hover:border-blue-500/20 hover:shadow-md"
+                  }`}
+                >
+                  {/* Plan Header */}
+                  <div className="p-5">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-lg truncate">{plan.name}</h3>
+                        <div className="flex flex-wrap items-center gap-3 mt-2 text-xs font-medium opacity-50">
+                          <span className="flex items-center gap-1">
+                            <FiCalendar size={12} />
+                            {new Date(plan.startDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                            {" → "}
+                            {new Date(plan.endDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <FiTarget size={12} />
+                            {plan.totalSessions} sessions
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <FiClock size={12} />
+                            {plan.totalHours}h
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <FiBookOpen size={12} />
+                            {plan.taskIds?.length || 0} tasks
+                          </span>
+                        </div>
+
+                        {/* Preference Badges */}
+                        <div className="flex gap-2 mt-3">
+                          {plan.preferences?.morningStudy && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-lg bg-amber-500/10 text-amber-500">
+                              <FiSun size={10} /> Morning
+                            </span>
+                          )}
+                          {plan.preferences?.useFreeSlots && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-lg bg-blue-500/10 text-blue-500">
+                              <FiGrid size={10} /> Free Slots
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <button
+                          onClick={() => setExpandedId(isExpanded ? null : plan._id)}
+                          className="p-2 rounded-lg hover:bg-[var(--bg)] transition-colors"
+                          title={isExpanded ? "Collapse" : "Expand"}
+                        >
+                          {isExpanded ? <FiChevronUp size={18} /> : <FiChevronDown size={18} />}
+                        </button>
+                        <button
+                          onClick={() => setShowDeleteConfirm(plan._id)}
+                          className="p-2 rounded-lg text-red-500/60 hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                          title="Delete"
+                        >
+                          <FiTrash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Created Date */}
+                    <p className="text-[11px] opacity-30 mt-3 font-medium">
+                      Created {new Date(plan.createdAt).toLocaleDateString(undefined, {
+                        month: "long", day: "numeric", year: "numeric",
+                        hour: "2-digit", minute: "2-digit",
+                      })}
+                    </p>
+                  </div>
+
+                  {/* Expanded: Session Breakdown */}
+                  {isExpanded && (
+                    <div className="border-t border-[var(--border)]">
+                      {/* Task List */}
+                      {plan.taskIds && plan.taskIds.length > 0 && (
+                        <div className="px-5 py-4 border-b border-[var(--border)]">
+                          <h4 className="text-xs font-bold uppercase tracking-wider opacity-50 mb-2">
+                            Included Tasks
+                          </h4>
+                          <div className="flex flex-wrap gap-2">
+                            {plan.taskIds.map((task) => (
+                              <span
+                                key={task._id}
+                                className="text-xs font-medium px-2.5 py-1 rounded-lg bg-[var(--bg)] border border-[var(--border)]"
+                              >
+                                {task.title || task._id}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Daily Breakdown */}
+                      <div className="divide-y divide-[var(--border)]">
+                        {Object.entries(grouped).map(([dateStr, sessions]) => (
+                          <div key={dateStr} className="px-5 py-3">
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="font-bold text-sm">{dateStr}</span>
+                              <span className="text-xs opacity-40 font-medium">
+                                {sessions.length} session{sessions.length > 1 ? "s" : ""}
+                              </span>
+                            </div>
+                            <div className="space-y-1.5">
+                              {sessions.map((session, idx) => (
+                                <div key={idx} className="flex items-center gap-3 text-sm">
+                                  <span className="text-xs font-mono opacity-50 whitespace-nowrap">
+                                    {new Date(session.startTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })}
+                                    –
+                                    {new Date(session.endTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })}
+                                  </span>
+                                  <span className="font-medium flex-1 truncate">{session.title}</span>
+                                  <span className="text-xs opacity-30">{session.duration}min</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+
+                        {(!plan.sessions || plan.sessions.length === 0) && (
+                          <div className="px-5 py-8 text-center opacity-40">
+                            <FiAlertCircle className="mx-auto text-2xl mb-2" />
+                            <p className="text-sm">No sessions in this plan</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Delete Confirmation Dialog */}
+      {showDeleteConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/20"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowDeleteConfirm(null);
+          }}
+        >
+          <div className="bg-[var(--bg)] p-6 rounded-xl shadow-xl max-w-sm w-full mx-4 border border-[var(--border)]">
+            <h3 className="text-lg font-bold">Delete Study Plan?</h3>
+            <p className="text-sm opacity-60 mt-2">
+              This will permanently remove this study plan. This action cannot be undone.
+            </p>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowDeleteConfirm(null)}
+                className="flex-1 px-4 py-2 rounded-lg bg-[var(--s-btn)] hover:opacity-80 transition-colors font-medium text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDelete(showDeleteConfirm)}
+                disabled={deletingId === showDeleteConfirm}
+                className="flex-1 px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors font-medium text-sm disabled:opacity-50"
+              >
+                {deletingId === showDeleteConfirm ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
