@@ -77,6 +77,13 @@ export default function Sidebar() {
             </Link>
 
             <Link
+              href="/study-plans"
+              className={`px-4 py-2.5 rounded-lg transition-all duration-200 ${getLinkStyles("/study-plans")}`}
+            >
+              Study Plans
+            </Link>
+
+            <Link
               href="/profile"
               className={`px-4 py-2.5 rounded-lg transition-all duration-200 ${getLinkStyles("/profile")}`}
             >

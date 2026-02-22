@@ -5,11 +5,31 @@ import Timetable from "../models/Timetable.js";
 import Studysession from "../models/Studysession.js";
 import Course from "../models/Course.js";
 
-export async function generateStudyPlan(userId, startDate = new Date()) {
+export async function generateStudyPlan(userId, options = {}) {
+    // Support both old signature (userId, startDate) and new (userId, options)
+    let opts = options;
+    if (options instanceof Date) {
+        opts = { startDate: options };
+    }
+
+    const {
+        startDate = new Date(),
+        endDate,
+        taskIds,
+        morningStudy = true,
+        morningEndTime = "09:00",
+        useFreeSlots = true,
+        saveToDb = true,
+    } = opts;
+
     await connectDB();
 
-    // 1. Fetch Data
-    const tasks = await Task.find({ userId, status: { $ne: "completed" } }).populate("courseId", "name").lean();
+    // 1. Fetch Data — optionally filter by taskIds
+    const taskQuery = { userId, status: { $ne: "completed" } };
+    if (taskIds && taskIds.length > 0) {
+        taskQuery._id = { $in: taskIds };
+    }
+    const tasks = await Task.find(taskQuery).populate("courseId", "name").lean();
     const timetableDoc = await Timetable.findOne({ userId });
 
     // If no tasks, return empty
@@ -18,8 +38,10 @@ export async function generateStudyPlan(userId, startDate = new Date()) {
         return [];
     }
 
-    // Clear existing future sessions to regenerate
-    await Studysession.deleteMany({ userId, startTime: { $gte: startDate } });
+    // Clear existing future sessions to regenerate (only when saving to DB)
+    if (saveToDb) {
+        await Studysession.deleteMany({ userId, startTime: { $gte: startDate } });
+    }
 
     // 2. Prepare Work Queue with daily tracking
     let workItems = tasks.map(task => ({
@@ -40,19 +62,30 @@ export async function generateStudyPlan(userId, startDate = new Date()) {
     // DYNAMIC PLANNING PERIOD
     // ============================================
 
-    // Find the latest deadline among all tasks
-    const latestDeadline = workItems.reduce((latest, item) =>
-        item.deadline > latest ? item.deadline : latest
-        , workItems[0].deadline);
-
-    // Calculate days needed: from start to latest deadline + 2 days buffer
     const msPerDay = 24 * 60 * 60 * 1000;
-    const daysToLatestDeadline = Math.ceil((latestDeadline - startDate) / msPerDay) + 2;
+    let daysToPlan;
 
-    // Plan until latest deadline, with min 7 days and max 60 days
-    const daysToPlan = Math.max(7, Math.min(60, daysToLatestDeadline));
+    if (endDate) {
+        // Use provided end date
+        daysToPlan = Math.max(1, Math.ceil((new Date(endDate) - startDate) / msPerDay) + 1);
+        daysToPlan = Math.min(90, daysToPlan);
+        console.log(`Planning period: ${daysToPlan} days (user-specified end date: ${new Date(endDate).toLocaleDateString()})`);
+    } else {
+        // Find the latest deadline among all tasks
+        const latestDeadline = workItems.reduce((latest, item) =>
+            item.deadline > latest ? item.deadline : latest
+            , workItems[0].deadline);
 
-    console.log(`Planning period: ${daysToPlan} days (latest deadline: ${latestDeadline.toLocaleDateString()})`);
+        // Calculate days needed: from start to latest deadline + 2 days buffer
+        const daysToLatestDeadline = Math.ceil((latestDeadline - startDate) / msPerDay) + 2;
+
+        // Plan until latest deadline, with min 7 days and max 60 days
+        daysToPlan = Math.max(7, Math.min(60, daysToLatestDeadline));
+        console.log(`Planning period: ${daysToPlan} days (latest deadline: ${latestDeadline.toLocaleDateString()})`);
+    }
+
+    // Parse morning end time from preferences
+    const [morningEndHour, morningEndMin] = (morningEndTime || "09:00").split(":").map(Number);
 
     // ============================================
     // SMART SCHEDULING CONFIGURATION
@@ -82,8 +115,8 @@ export async function generateStudyPlan(userId, startDate = new Date()) {
     const scaleFactor = Math.max(1, Math.min(1.5, workloadRatio));
 
     const CONFIG = {
-        // Time boundaries
-        DAY_START_HOUR: 6,
+        // Time boundaries — if no morning study, start the day at 9 AM
+        DAY_START_HOUR: morningStudy ? 6 : 9,
         DAY_END_HOUR: 22,
 
         // Weekday limits
@@ -99,17 +132,17 @@ export async function generateStudyPlan(userId, startDate = new Date()) {
         MAX_SESSION_MINUTES: 75,
         BREAK_BETWEEN_SESSIONS: 30,
 
-        // Time slot preferences
-        PREFERRED_MORNING_END: 9,
+        // Time slot preferences (uses user preference for morning boundary)
+        PREFERRED_MORNING_END: morningStudy ? morningEndHour : 6, // If no morning study, effectively disable
         PREFERRED_EVENING_START: 17,
 
         // SESSION DISTRIBUTION (balance across time periods)
-        MAX_MORNING_SESSIONS: 2,    // Max 2 sessions in morning
-        MAX_EVENING_SESSIONS: 2,    // Max 2 sessions in evening
-        MAX_MIDDAY_SESSIONS_WEEKDAY: 2,  // Allow 2 midday sessions (in free timetable slots)
+        MAX_MORNING_SESSIONS: morningStudy ? 3 : 0,    // Disable morning sessions if user opts out
+        MAX_EVENING_SESSIONS: 3,    // Max 3 sessions in evening
+        MAX_MIDDAY_SESSIONS_WEEKDAY: useFreeSlots ? 3 : 0,  // Disable midday if user opts out of free slots
 
-        // Mid-day gaps - USE FREE SLOTS from timetable
-        USE_MIDDAY_GAPS: true,
+        // Mid-day gaps - USE FREE SLOTS from timetable (controlled by user preference)
+        USE_MIDDAY_GAPS: useFreeSlots,
 
         // Urgency handling
         URGENT_DAYS_THRESHOLD: 3,
@@ -125,9 +158,7 @@ export async function generateStudyPlan(userId, startDate = new Date()) {
 
     // Helper: Check if deadline allows scheduling
     const canScheduleTask = (taskDeadline, cursorTime) => {
-        const deadlineEndOfDay = new Date(taskDeadline);
-        deadlineEndOfDay.setHours(23, 59, 59, 999);
-        return cursorTime < deadlineEndOfDay;
+        return cursorTime < new Date(taskDeadline);
     };
 
     // Helper: Get available tasks for scheduling (with rotation logic)
@@ -197,8 +228,16 @@ export async function generateStudyPlan(userId, startDate = new Date()) {
         const dayStart = new Date(currentDate);
         dayStart.setHours(CONFIG.DAY_START_HOUR, 0, 0, 0);
 
+        // On the first day, don't schedule before the actual start time
+        if (d === 0 && startDate > dayStart) {
+            dayStart.setTime(startDate.getTime());
+        }
+
         const dayEnd = new Date(currentDate);
         dayEnd.setHours(CONFIG.DAY_END_HOUR, 0, 0, 0);
+
+        // Skip this day entirely if start time is already past the end of day
+        if (dayStart >= dayEnd) continue;
 
         // Get busy blocks from timetable
         const busyBlocks = await getBusyBlocks(userId, currentDate, timetableDoc, dayStart, dayEnd);
@@ -274,13 +313,13 @@ export async function generateStudyPlan(userId, startDate = new Date()) {
 
         // Interleave morning and evening
         const interleavedIntervals = [];
-        const maxLen = Math.max(morningIntervals.length, eveningIntervals.length);
+        // Interleave morning, midday, and evening for balanced distribution
+        const maxLen = Math.max(morningIntervals.length, middayIntervals.length, eveningIntervals.length);
         for (let i = 0; i < maxLen; i++) {
             if (i < morningIntervals.length) interleavedIntervals.push(morningIntervals[i]);
+            if (i < middayIntervals.length) interleavedIntervals.push(middayIntervals[i]);
             if (i < eveningIntervals.length) interleavedIntervals.push(eveningIntervals[i]);
         }
-        // Add midday at the end (lowest priority)
-        interleavedIntervals.push(...middayIntervals);
 
         // Process each interval (now interleaved)
         for (const interval of interleavedIntervals) {
@@ -333,11 +372,14 @@ export async function generateStudyPlan(userId, startDate = new Date()) {
                 const isUrgent = daysUntilDeadline <= CONFIG.URGENT_DAYS_THRESHOLD;
                 const effectiveMaxSession = isUrgent ? 90 : CONFIG.MAX_SESSION_MINUTES;
 
+                const minutesToDeadline = Math.max(0, (item.deadline - cursor) / 60000);
+
                 let sessionDuration = Math.min(
                     item.remainingMinutes,
                     remainingInInterval,
                     effectiveMaxSession,
-                    remainingDailyCapacity
+                    remainingDailyCapacity,
+                    minutesToDeadline
                 );
 
                 if (sessionDuration < CONFIG.MIN_SESSION_MINUTES) break;
@@ -405,8 +447,8 @@ export async function generateStudyPlan(userId, startDate = new Date()) {
         });
     }
 
-    // 6. Save
-    if (newSessions.length > 0) {
+    // 6. Save (only if saveToDb is true)
+    if (saveToDb && newSessions.length > 0) {
         await Studysession.insertMany(newSessions);
     }
 
