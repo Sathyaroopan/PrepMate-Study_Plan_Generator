@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { MdLightMode, MdDarkMode } from "react-icons/md";
+import { FiMenu } from "react-icons/fi";
 import Image from 'next/image';
 import Link from 'next/link';
 
-export default function Navbar({ userName }) {
+export default function Navbar({ userName, onMenuToggle }) {
   const [darkMode, setDarkMode] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -35,29 +36,40 @@ export default function Navbar({ userName }) {
   if (!mounted) return null;
 
   return (
-    <header className="h-14 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-6 bg-bg transition-colors">
-      <Link href="/" className="flex items-center">
+    <header className="h-14 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-4 md:px-6 bg-bg transition-colors">
+      <div className="flex items-center gap-3">
+        {/* Hamburger — mobile only */}
+        {onMenuToggle && (
+          <button
+            onClick={onMenuToggle}
+            className="md:hidden p-2 rounded-lg hover:bg-[var(--s-btn)] transition-colors"
+            aria-label="Toggle navigation menu"
+          >
+            <FiMenu size={20} />
+          </button>
+        )}
 
-        <Image
-          src="/logo_text_light.png"
-          alt="PrepMate Logo"
-          width={120}
-          height={40}
-          className="block dark:hidden h-8 w-auto"
-          priority
-        />
+        <Link href="/" className="flex items-center">
+          <Image
+            src="/logo_text_light.png"
+            alt="PrepMate Logo"
+            width={120}
+            height={40}
+            className="block dark:hidden h-8 w-auto"
+            priority
+          />
+          <Image
+            src="/logo_text_dark.png"
+            alt="PrepMate Logo"
+            width={120}
+            height={40}
+            className="hidden dark:block h-8 w-auto"
+            priority
+          />
+        </Link>
+      </div>
 
-        <Image
-          src="/logo_text_dark.png"
-          alt="PrepMate Logo"
-          width={120}
-          height={40}
-          className="hidden dark:block h-8 w-auto"
-          priority
-        />
-      </Link>
-
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 md:gap-4">
         {/* Theme Toggle */}
         <button
           onClick={toggleTheme}
@@ -76,10 +88,11 @@ export default function Navbar({ userName }) {
         </button>
 
         {/* User Name */}
-        <button className="px-4 py-2 bg-primary-btn text-primary-btn-text rounded hover:bg-primary-btn-hover transition-colors font-medium">
+        <button className="px-3 md:px-4 py-2 bg-primary-btn text-primary-btn-text rounded hover:bg-primary-btn-hover transition-colors font-medium text-sm md:text-base truncate max-w-[120px] md:max-w-none">
           {userName}
         </button>
       </div>
     </header>
   );
 }
+

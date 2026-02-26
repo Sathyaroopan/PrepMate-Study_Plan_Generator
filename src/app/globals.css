@@ -76,3 +76,49 @@
     scrollbar-color: var(--border) var(--bg);
   }
 }
+
+/* ========================================
+   Accessibility: Font Size Preferences
+   ======================================== */
+[data-font-size="small"] {
+  font-size: 14px;
+}
+
+[data-font-size="medium"] {
+  font-size: 16px;
+}
+
+[data-font-size="large"] {
+  font-size: 18px;
+}
+
+/* ========================================
+   Accessibility: High Contrast Mode
+   ======================================== */
+[data-high-contrast="true"] {
+  --border: #6b7280;
+}
+
+[data-high-contrast="true"][data-theme="dark"] {
+  --text: #ffffff;
+  --border: #9ca3af;
+  --s-btn-txt: #d1d5db;
+}
+
+[data-high-contrast="true"]:not([data-theme="dark"]) {
+  --text: #000000;
+  --border: #374151;
+  --s-btn-txt: #111827;
+}
+
+/* ========================================
+   Accessibility: Reduced Motion
+   ======================================== */
+[data-reduced-motion="true"] *,
+[data-reduced-motion="true"] *::before,
+[data-reduced-motion="true"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}

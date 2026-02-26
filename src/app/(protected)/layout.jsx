@@ -1,11 +1,10 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { verifyToken } from "@/lib/jwt";
-import Navbar from "@/components/Navbar";
-import Sidebar from "@/components/Sidebar";
+import ProtectedShell from "@/components/ProtectedShell";
 
 export default async function ProtectedLayout({ children }) {
-  const cookieStore = await cookies(); 
+  const cookieStore = await cookies();
   const tokenCookie = cookieStore.get("token");
   const token = tokenCookie?.value;
 
@@ -22,15 +21,6 @@ export default async function ProtectedLayout({ children }) {
     redirect("/login");
   }
 
-  return (
-    <div className="flex h-screen">
-      <Sidebar />
-      <div className="flex flex-col flex-1">
-        <Navbar userName={userName} />
-        <main className="flex-1 overflow-y-auto p-6 bg-bg">
-          {children}
-        </main>
-      </div>
-    </div>
-  );
+  return <ProtectedShell userName={userName}>{children}</ProtectedShell>;
 }
+

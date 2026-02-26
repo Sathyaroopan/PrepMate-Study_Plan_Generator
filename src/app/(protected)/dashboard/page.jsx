@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Flame, Clock, CheckCircle, BookOpen, AlertTriangle, Rocket, Zap, Target } from "lucide-react";
+import OnboardingOverlay from "@/components/OnboardingOverlay";
 
 export default function DashboardPage() {
   const [user, setUser] = useState(null);
@@ -108,7 +109,8 @@ export default function DashboardPage() {
   const isOverdue = stats.nextDeadline && new Date(stats.nextDeadline.deadline) < new Date();
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+      <OnboardingOverlay />
 
       {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-[var(--border)] pb-8">
