@@ -26,6 +26,7 @@ export default function LoginPage() {
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
 
@@ -44,7 +45,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[var(--bg)] transition-colors duration-300">
       <div className="w-full max-w-md p-8 rounded-2xl shadow-lg border border-[var(--border)] bg-[var(--bg)]">
-        
+
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-[var(--text)] mb-2">Welcome Back</h1>
           <p className="text-sm text-[var(--text)] opacity-70">
