@@ -17,6 +17,7 @@
 9. [Authentication & Middleware](#authentication--middleware)
 10. [Scheduler Algorithm](#scheduler-algorithm)
 11. [Testing](#testing)
+12. [CI/CD Pipeline](#cicd-pipeline)
 
 ---
 
@@ -895,3 +896,52 @@ Test Suites: 11 passed, 11 total
 Tests:       72 passed, 72 total
 Snapshots:   0 total
 ```
+
+---
+
+## CI/CD Pipeline
+
+This project uses **GitHub Actions** for continuous integration and **Vercel** for continuous deployment.
+
+### GitHub Actions Workflow
+
+The CI pipeline is defined in `.github/workflows/ci.yml` and runs automatically on:
+
+- **Push** to `main` or `master`
+- **Pull requests** targeting `main` or `master`
+
+#### Pipeline Steps
+
+| Step | Command | Purpose |
+|------|---------|---------|
+| Checkout | `actions/checkout@v4` | Clone the repository |
+| Setup Node.js | `actions/setup-node@v4` | Install Node.js (tested on 18 and 20) |
+| Install | `npm ci` | Clean install of dependencies |
+| Lint | `npm run lint` | ESLint code quality checks |
+| Test | `npm test -- --ci --coverage` | Run all 72 Jest tests with coverage report |
+| Build | `npm run build` | Verify production build succeeds |
+
+#### Node.js Matrix
+
+The workflow tests against the following Node.js versions to ensure compatibility:
+
+- **Node 18** (minimum required)
+- **Node 20** (current LTS)
+
+### Required Secrets
+
+Configure these in **GitHub → Settings → Secrets and variables → Actions**:
+
+| Secret | Used In | Purpose |
+|--------|---------|---------|
+| `MONGODB_URI` | Build step | MongoDB connection string for build-time validation |
+| `JWT_SECRET` | Build step | JWT signing secret (tests use a hardcoded CI value) |
+
+### Vercel Deployment
+
+Vercel is connected to the GitHub repository for automatic deployments:
+
+- **Production** — Deployed on push to `main`/`master`
+- **Preview** — Deployed on pull requests
+
+Environment variables (`MONGODB_URI`, `JWT_SECRET`) must be configured in the **Vercel Dashboard → Project Settings → Environment Variables**.
