@@ -9,6 +9,9 @@
     "lint": "eslint",
     "test": "jest"
   },
+  "engines": {
+    "node": ">=20.9.0"
+  },
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "jose": "^6.1.3",

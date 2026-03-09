@@ -319,7 +319,7 @@ sequenceDiagram
 ## Environment Setup
 
 ### Prerequisites
-- **Node.js** 18+
+- **Node.js** 20+ (20.9.0 or higher required)
 - **MongoDB** instance (local or Atlas)
 
 ### Installation
@@ -915,18 +915,15 @@ The CI pipeline is defined in `.github/workflows/ci.yml` and runs automatically 
 | Step | Command | Purpose |
 |------|---------|---------|
 | Checkout | `actions/checkout@v4` | Clone the repository |
-| Setup Node.js | `actions/setup-node@v4` | Install Node.js (tested on 18 and 20) |
+| Setup Node.js | `actions/setup-node@v4` | Install Node.js (v20) |
 | Install | `npm ci` | Clean install of dependencies |
 | Lint | `npm run lint` | ESLint code quality checks |
 | Test | `npm test -- --ci --coverage` | Run all 72 Jest tests with coverage report |
 | Build | `npm run build` | Verify production build succeeds |
 
-#### Node.js Matrix
+#### Node.js Version
 
-The workflow tests against the following Node.js versions to ensure compatibility:
-
-- **Node 18** (minimum required)
-- **Node 20** (current LTS)
+The workflow runs on **Node 20** to satisfy Next.js >=20.9.0 requirements.
 
 ### Required Secrets
 
