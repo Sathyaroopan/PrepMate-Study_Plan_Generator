@@ -3,19 +3,29 @@
 import { useState, useEffect, useRef } from "react";
 import { FiCalendar, FiChevronLeft, FiChevronRight, FiClock, FiCheck } from "react-icons/fi";
 
+function parseDate(value) {
+    if (value) {
+        const date = new Date(value);
+        if (!isNaN(date.getTime())) return date;
+    }
+    return new Date();
+}
+
 export default function DateTimePicker({ value, onChange, label }) {
     const [mode, setMode] = useState(null); // 'date' | 'time' | null
-    const [viewDate, setViewDate] = useState(new Date()); // For calendar navigation
-    const [selectedDate, setSelectedDate] = useState(new Date());
+    const [viewDate, setViewDate] = useState(() => parseDate(value));
+    const [selectedDate, setSelectedDate] = useState(() => parseDate(value));
     const popupRef = useRef(null);
 
-    // Sync internal state with prop
+    // Sync internal state when value prop changes
     useEffect(() => {
         if (value) {
             const date = new Date(value);
             if (!isNaN(date.getTime())) {
+                /* eslint-disable react-hooks/set-state-in-effect */
                 setSelectedDate(date);
                 setViewDate(date);
+                /* eslint-enable react-hooks/set-state-in-effect */
             }
         }
     }, [value]);

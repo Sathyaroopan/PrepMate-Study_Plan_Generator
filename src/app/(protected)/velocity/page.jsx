@@ -89,7 +89,7 @@ export default function VelocityPage() {
     if (dateConstraints.maxEnd && !endDate) {
       setEndDate(dateConstraints.maxEnd);
     }
-  }, [dateConstraints]);
+  }, [dateConstraints, startDate, endDate]);
 
   // Handlers
   const toggleTask = (taskId) => {
@@ -312,29 +312,26 @@ export default function VelocityPage() {
               <div key={step.id} className="flex items-center gap-2 flex-1">
                 <div className="flex flex-col items-center gap-1.5 flex-1">
                   <div
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
-                      isCompleted
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${isCompleted
                         ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30"
                         : isActive
                           ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30"
                           : "bg-[var(--s-btn)] border border-[var(--border)] opacity-40"
-                    }`}
+                      }`}
                   >
                     {isCompleted ? <FiCheck size={18} /> : <Icon size={18} />}
                   </div>
                   <span
-                    className={`text-[11px] font-bold uppercase tracking-wider whitespace-nowrap ${
-                      isActive ? "opacity-100" : "opacity-40"
-                    }`}
+                    className={`text-[11px] font-bold uppercase tracking-wider whitespace-nowrap ${isActive ? "opacity-100" : "opacity-40"
+                      }`}
                   >
                     {step.title}
                   </span>
                 </div>
                 {idx < STEPS.length - 1 && (
                   <div
-                    className={`h-0.5 flex-1 rounded-full mb-5 transition-all duration-300 ${
-                      isCompleted ? "bg-emerald-500" : "bg-[var(--border)]"
-                    }`}
+                    className={`h-0.5 flex-1 rounded-full mb-5 transition-all duration-300 ${isCompleted ? "bg-emerald-500" : "bg-[var(--border)]"
+                      }`}
                   />
                 )}
               </div>
@@ -386,24 +383,22 @@ export default function VelocityPage() {
                         key={task._id}
                         onClick={() => !isOverdue && toggleTask(task._id)}
                         disabled={isOverdue}
-                        className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-200 ${
-                          isOverdue
+                        className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-200 ${isOverdue
                             ? "border-[var(--border)] opacity-40 cursor-not-allowed"
                             : isSelected
                               ? "border-blue-500 bg-blue-500/5 shadow-sm"
                               : "border-[var(--border)] hover:border-[var(--border)] hover:bg-[var(--s-btn)]/50"
-                        }`}
+                          }`}
                       >
                         <div className="flex items-start gap-3">
                           {/* Checkbox */}
                           <div
-                            className={`mt-0.5 w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all ${
-                              isOverdue
+                            className={`mt-0.5 w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all ${isOverdue
                                 ? "border-[var(--border)] bg-[var(--s-btn)]"
                                 : isSelected
                                   ? "bg-blue-600 border-blue-600"
                                   : "border-[var(--border)]"
-                            }`}
+                              }`}
                           >
                             {isSelected && <FiCheck className="text-white" size={12} />}
                           </div>
@@ -559,14 +554,12 @@ export default function VelocityPage() {
                   </div>
                   <button
                     onClick={() => setMorningStudy(!morningStudy)}
-                    className={`w-12 h-7 rounded-full transition-all duration-300 relative ${
-                      morningStudy ? "bg-amber-500" : "bg-[var(--border)]"
-                    }`}
+                    className={`w-12 h-7 rounded-full transition-all duration-300 relative ${morningStudy ? "bg-amber-500" : "bg-[var(--border)]"
+                      }`}
                   >
                     <div
-                      className={`w-5 h-5 rounded-full bg-white shadow-sm absolute top-1 transition-all duration-300 ${
-                        morningStudy ? "left-6" : "left-1"
-                      }`}
+                      className={`w-5 h-5 rounded-full bg-white shadow-sm absolute top-1 transition-all duration-300 ${morningStudy ? "left-6" : "left-1"
+                        }`}
                     />
                   </button>
                 </div>
@@ -604,14 +597,12 @@ export default function VelocityPage() {
                   </div>
                   <button
                     onClick={() => setUseFreeSlots(!useFreeSlots)}
-                    className={`w-12 h-7 rounded-full transition-all duration-300 relative ${
-                      useFreeSlots ? "bg-blue-500" : "bg-[var(--border)]"
-                    }`}
+                    className={`w-12 h-7 rounded-full transition-all duration-300 relative ${useFreeSlots ? "bg-blue-500" : "bg-[var(--border)]"
+                      }`}
                   >
                     <div
-                      className={`w-5 h-5 rounded-full bg-white shadow-sm absolute top-1 transition-all duration-300 ${
-                        useFreeSlots ? "left-6" : "left-1"
-                      }`}
+                      className={`w-5 h-5 rounded-full bg-white shadow-sm absolute top-1 transition-all duration-300 ${useFreeSlots ? "left-6" : "left-1"
+                        }`}
                     />
                   </button>
                 </div>
@@ -647,9 +638,8 @@ export default function VelocityPage() {
                     {selectedTasks.map((task) => (
                       <div key={task._id} className="flex items-center gap-3">
                         <span
-                          className={`w-1.5 h-1.5 rounded-full ${
-                            task.priority === "high" ? "bg-red-500" : task.priority === "low" ? "bg-emerald-500" : "bg-amber-500"
-                          }`}
+                          className={`w-1.5 h-1.5 rounded-full ${task.priority === "high" ? "bg-red-500" : task.priority === "low" ? "bg-emerald-500" : "bg-amber-500"
+                            }`}
                         />
                         <span className="text-sm font-medium flex-1 truncate">{task.title}</span>
                         <span className="text-xs opacity-40">{task.estimatedHours}h</span>

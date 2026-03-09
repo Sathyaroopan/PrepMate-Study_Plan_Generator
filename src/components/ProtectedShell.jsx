@@ -12,7 +12,9 @@ export default function ProtectedShell({ userName, children }) {
 
     // Close sidebar on route change (mobile)
     useEffect(() => {
+        /* eslint-disable react-hooks/set-state-in-effect */
         setSidebarOpen(false);
+        /* eslint-enable react-hooks/set-state-in-effect */
     }, [pathname]);
 
     // Close sidebar on Escape key

@@ -35,14 +35,12 @@ function applySettings(settings) {
 }
 
 export default function SettingsPage() {
-    const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+    const [settings, setSettings] = useState(() => loadSettings());
     const [saved, setSaved] = useState(false);
 
     useEffect(() => {
-        const s = loadSettings();
-        setSettings(s);
-        applySettings(s);
-    }, []);
+        applySettings(settings);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const updateSetting = (key, value) => {
         const next = { ...settings, [key]: value };
@@ -90,8 +88,8 @@ export default function SettingsPage() {
                                 key={fs.value}
                                 onClick={() => updateSetting("fontSize", fs.value)}
                                 className={`p-4 rounded-2xl border-2 transition-all text-center ${settings.fontSize === fs.value
-                                        ? "border-blue-500 bg-blue-500/5 shadow-md shadow-blue-500/10"
-                                        : "border-[var(--border)] hover:border-blue-500/30"
+                                    ? "border-blue-500 bg-blue-500/5 shadow-md shadow-blue-500/10"
+                                    : "border-[var(--border)] hover:border-blue-500/30"
                                     }`}
                             >
                                 <span
