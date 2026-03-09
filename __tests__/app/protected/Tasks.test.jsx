@@ -119,9 +119,13 @@ describe("TasksPage", () => {
         fireEvent.change(screen.getByRole("combobox"), { target: { value: "Math" } });
         fireEvent.change(screen.getByPlaceholderText(/e.g., Midterm Exam Prep/i), { target: { value: "New Task" } });
 
-        // For datetime-local
-        const dateInput = document.querySelector('input[type="datetime-local"]');
-        fireEvent.change(dateInput, { target: { value: "2026-03-01T10:00" } });
+        // For DateTimePicker custom component
+        // 1. Open Date Popover
+        const dateTrigger = screen.getByText(new Date().getFullYear().toString());
+        fireEvent.click(dateTrigger);
+        // 2. Click a date (e.g., 15)
+        const dateButton = screen.getByText("15");
+        fireEvent.click(dateButton);
 
         fireEvent.change(screen.getByPlaceholderText(/2.5/i), { target: { value: "3" } });
 
