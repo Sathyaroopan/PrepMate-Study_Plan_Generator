@@ -74,7 +74,7 @@ export async function GET(req) {
         }
 
         await connectDB();
-        const tasks = await Task.find({ userId: decoded.id, status: "pending" }).populate("courseId", "name");
+        const tasks = await Task.find({ userId: decoded.id }).populate("courseId", "name");
 
         return NextResponse.json(tasks);
     } catch (error) {
