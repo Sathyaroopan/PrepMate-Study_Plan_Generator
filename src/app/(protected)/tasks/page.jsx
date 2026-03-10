@@ -113,6 +113,35 @@ export default function TasksPage() {
     }
   };
 
+  const handleCompleteTask = async (id) => {
+    try {
+      const res = await fetch(`/api/tasks/${id}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "completed" }),
+      });
+      if (!res.ok) throw new Error("Failed to complete task");
+      fetchTasks();
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const handleDeleteTask = async (id) => {
+    if (!confirm("Are you sure you want to delete this task?")) return;
+    try {
+      const res = await fetch(`/api/tasks/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to delete task");
+      fetchTasks();
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
   // Memoized Task Categorization
   const { overdueTasks, upcomingTasks } = useMemo(() => {
     const now = new Date();
@@ -191,7 +220,14 @@ export default function TasksPage() {
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {overdueTasks.map((task) => (
-                    <TaskCard key={task._id} task={task} onEdit={() => openEditModal(task)} isOverdue={true} />
+                    <TaskCard
+                      key={task._id}
+                      task={task}
+                      onEdit={() => openEditModal(task)}
+                      onComplete={() => handleCompleteTask(task._id)}
+                      onDelete={() => handleDeleteTask(task._id)}
+                      isOverdue={true}
+                    />
                   ))}
                 </div>
               </CollapsibleSection>
@@ -211,7 +247,14 @@ export default function TasksPage() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {upcomingTasks.map((task) => (
-                    <TaskCard key={task._id} task={task} onEdit={() => openEditModal(task)} isOverdue={false} />
+                    <TaskCard
+                      key={task._id}
+                      task={task}
+                      onEdit={() => openEditModal(task)}
+                      onComplete={() => handleCompleteTask(task._id)}
+                      onDelete={() => handleDeleteTask(task._id)}
+                      isOverdue={false}
+                    />
                   ))}
                 </div>
               )}
@@ -399,7 +442,7 @@ function CollapsibleSection({ title, count, children, variant = "default", defau
   );
 }
 
-function TaskCard({ task, onEdit, isOverdue }) {
+function TaskCard({ task, onEdit, onComplete, onDelete, isOverdue }) {
   return (
     <div
       className={`group relative bg-[var(--bg)] border rounded-3xl p-6 transition-all hover:shadow-2xl hover:shadow-black/[0.04] ${isOverdue
@@ -410,7 +453,7 @@ function TaskCard({ task, onEdit, isOverdue }) {
       {/* Edit Button */}
       <button
         onClick={onEdit}
-        className="absolute top-5 right-5 p-2.5 rounded-xl bg-[var(--s-btn)] opacity-0 group-hover:opacity-100 transition-all hover:bg-blue-500 hover:text-white shadow-sm"
+        className="absolute top-5 right-5 p-2.5 rounded-xl bg-[var(--s-btn)] opacity-0 group-hover:opacity-100 transition-all hover:bg-blue-500 hover:text-white shadow-sm z-10"
         title="Edit Task"
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -437,7 +480,7 @@ function TaskCard({ task, onEdit, isOverdue }) {
         <PriorityBadge priority={task.priority} />
       </div>
 
-      <div className={`flex items-center justify-between mt-6 pt-5 border-t ${isOverdue ? "border-red-500/10" : "border-[var(--border)]/40"}`}>
+      <div className={`flex flex-col gap-6 mt-6 pt-5 border-t ${isOverdue ? "border-red-500/10" : "border-[var(--border)]/40"}`}>
         <div className="flex items-center gap-5">
           <div className="flex flex-col">
             <span className={`text-[9px] uppercase font-black tracking-tight opacity-40 mb-0.5 ${isOverdue ? "text-red-500 opacity-60" : ""}`}>Deadline</span>
@@ -456,10 +499,32 @@ function TaskCard({ task, onEdit, isOverdue }) {
             <span className="text-sm font-semibold opacity-80">{task.estimatedHours}h</span>
           </div>
         </div>
-        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-0 translate-x-4 ${isOverdue ? "bg-red-500 text-white shadow-lg shadow-red-500/20" : "bg-[var(--s-btn)] shadow-sm"}`}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M5 12h14M12 5l7 7-7 7" />
-          </svg>
+
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2">
+          {task.status !== "completed" && (
+            <button
+              onClick={onComplete}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-white text-xs font-bold transition-all active:scale-[0.98] ${isOverdue
+                ? "bg-red-500 hover:bg-red-600 hover:shadow-lg hover:shadow-red-500/20"
+                : "bg-blue-500 hover:bg-blue-600 hover:shadow-lg hover:shadow-blue-500/20"
+                }`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 6 9 17l-5-5" />
+              </svg>
+              Mark Completed
+            </button>
+          )}
+          <button
+            onClick={onDelete}
+            className="px-3 py-2.5 rounded-xl border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all active:scale-[0.98] group/del"
+            title="Delete Task"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2M10 11v6M14 11v6" />
+            </svg>
+          </button>
         </div>
       </div>
     </div>
