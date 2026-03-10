@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import DateTimePicker from "@/components/DateTimePicker";
 
 export default function TasksPage() {
@@ -113,6 +113,23 @@ export default function TasksPage() {
     }
   };
 
+  // Memoized Task Categorization
+  const { overdueTasks, upcomingTasks } = useMemo(() => {
+    const now = new Date();
+    return tasks.reduce(
+      (acc, task) => {
+        const isOverdue = new Date(task.deadline) < now && task.status !== "completed";
+        if (isOverdue) {
+          acc.overdueTasks.push(task);
+        } else {
+          acc.upcomingTasks.push(task);
+        }
+        return acc;
+      },
+      { overdueTasks: [], upcomingTasks: [] }
+    );
+  }, [tasks]);
+
   // Helper to calculate total workload
   const totalHours = tasks.reduce((acc, task) => acc + (task.estimatedHours || 0), 0);
 
@@ -130,116 +147,98 @@ export default function TasksPage() {
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors">
       <div className="max-w-5xl mx-auto px-6 py-10">
-
         {/* Header Section */}
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
           <div>
-            <h1 className="text-4xl font-bold tracking-tight mb-2">My Tasks</h1>
+            <h1 className="text-4xl font-bold tracking-tight mb-2 font-display">My Tasks</h1>
             <div className="flex gap-4 text-sm opacity-60">
               <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></span>
                 {tasks.length} Assignments
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
                 {totalHours} Total Hours
               </span>
             </div>
           </div>
           <button
             onClick={openCreateModal}
-            className="h-fit px-6 py-3 rounded-xl bg-[var(--p-btn)] text-[var(--p-btn-txt)] font-semibold hover:bg-[var(--p-btn-hov)] transition-all active:scale-95 shadow-lg shadow-black/5"
+            className="h-fit px-8 py-3.5 rounded-2xl bg-[var(--p-btn)] text-[var(--p-btn-txt)] font-bold hover:bg-[var(--p-btn-hov)] transition-all active:scale-95 shadow-xl shadow-blue-500/10 border border-white/10"
           >
             + Add New Task
           </button>
         </header>
 
-        {/* Task Grid */}
+        {/* Task Sections */}
         {tasks.length === 0 ? (
-          <div className="border-2 border-dashed border-[var(--border)] rounded-3xl py-20 text-center">
-            <p className="text-4xl mb-4">🎉</p>
-            <h3 className="text-lg font-medium opacity-80">All caught up!</h3>
-            <p className="text-sm opacity-50 mt-1">Enjoy your free time or add a new task.</p>
+          <div className="border-2 border-dashed border-[var(--border)] rounded-[2rem] py-24 text-center bg-white/[0.02]">
+            <p className="text-5xl mb-6">🎉</p>
+            <h3 className="text-xl font-bold opacity-80">All caught up!</h3>
+            <p className="text-sm opacity-50 mt-2 max-w-xs mx-auto">
+              You've cleared your schedule. Enjoy your free time or add a new goal above.
+            </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {tasks.map((task) => {
-              const isOverdue = new Date(task.deadline) < new Date() && task.status !== 'completed';
-              return (
-                <div
-                  key={task._id}
-                  className={`group relative bg-[var(--bg)] border rounded-2xl p-6 transition-all hover:shadow-xl hover:shadow-black/[0.02] ${isOverdue
-                    ? "border-red-500 bg-red-500/5 hover:border-red-600"
-                    : "border-[var(--border)] hover:border-[var(--p-btn)]"
-                    }`}
-                >
-                  {/* Edit Button - Visible on Hover */}
-                  <button
-                    onClick={() => openEditModal(task)}
-                    className="absolute top-4 right-4 p-2 rounded-lg bg-[var(--s-btn)] opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-500/10 hover:text-blue-500"
-                    title="Edit Task"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
-                    </svg>
-                  </button>
-
-                  <div className="flex justify-between items-start mb-4 pr-8">
-                    <div className="flex flex-col">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className={`text-[10px] font-bold uppercase tracking-widest ${isOverdue ? "text-red-500" : "text-blue-500"}`}>
-                          {task.courseId?.name || "Independent"}
-                        </span>
-                        {isOverdue && (
-                          <span className="bg-red-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider animate-pulse">
-                            Overdue
-                          </span>
-                        )}
-                      </div>
-                      <h2 className={`text-xl font-bold group-hover:translate-x-1 transition-transform ${isOverdue ? "text-red-500" : ""}`}>
-                        {task.title}
-                      </h2>
-                    </div>
-                    <PriorityBadge priority={task.priority} />
-                  </div>
-
-                  <div className={`flex items-center justify-between mt-6 pt-4 border-t ${isOverdue ? "border-red-500/20" : "border-[var(--border)]/50"}`}>
-                    <div className="flex items-center gap-4">
-                      <div className="flex flex-col">
-                        <span className={`text-[10px] uppercase opacity-40 font-bold ${isOverdue ? "text-red-500 opacity-70" : ""}`}>Deadline</span>
-                        <span className={`text-sm font-medium ${isOverdue ? "text-red-500" : ""}`}>
-                          {new Date(task.deadline).toLocaleString(undefined, {
-                            month: "short",
-                            day: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </span>
-                      </div>
-                      <div className={`w-[1px] h-8 ${isOverdue ? "bg-red-500/20" : "bg-[var(--border)]"}`} />
-                      <div className="flex flex-col">
-                        <span className="text-[10px] uppercase opacity-40 font-bold">Estimate</span>
-                        <span className="text-sm font-medium">{task.estimatedHours}h</span>
-                      </div>
-                    </div>
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity ${isOverdue ? "bg-red-500 text-white" : "bg-[var(--s-btn)]"}`}>
-                      <span className="text-xs">→</span>
-                    </div>
-                  </div>
+          <div className="flex flex-col gap-10">
+            {/* Overdue Section */}
+            {overdueTasks.length > 0 && (
+              <CollapsibleSection
+                title="Overdue Tasks"
+                count={overdueTasks.length}
+                variant="danger"
+                defaultOpen={true}
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {overdueTasks.map((task) => (
+                    <TaskCard key={task._id} task={task} onEdit={() => openEditModal(task)} isOverdue={true} />
+                  ))}
                 </div>
-              );
-            })}
+              </CollapsibleSection>
+            )}
+
+            {/* Upcoming Section */}
+            <CollapsibleSection
+              title="To Be Completed"
+              count={upcomingTasks.length}
+              variant="default"
+              defaultOpen={true}
+            >
+              {upcomingTasks.length === 0 ? (
+                <div className="text-center py-10 opacity-30 italic text-sm border border-dashed border-[var(--border)] rounded-2xl">
+                  No upcoming tasks
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {upcomingTasks.map((task) => (
+                    <TaskCard key={task._id} task={task} onEdit={() => openEditModal(task)} isOverdue={false} />
+                  ))}
+                </div>
+              )}
+            </CollapsibleSection>
           </div>
         )}
       </div>
 
       {/* Modal Backdrop */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md bg-black/20 animate-in fade-in duration-300">
-          <div className="bg-[var(--bg)] w-full max-w-md rounded-3xl shadow-2xl border border-[var(--border)] overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-xl bg-black/40 animate-in fade-in duration-300">
+          <div className="bg-[var(--bg)] w-full max-w-md rounded-[2rem] shadow-2xl border border-[var(--border)] overflow-hidden">
             <div className="p-8">
-              <h2 className="text-2xl font-bold mb-1">{editingTask ? "Edit Task" : "Create Task"}</h2>
-              <p className="text-sm opacity-50 mb-8">{editingTask ? "Update your task details." : "Set your goals and estimates."}</p>
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold mb-1">{editingTask ? "Edit Task" : "Create Task"}</h2>
+                  <p className="text-sm opacity-50">{editingTask ? "Update your task details." : "Set your goals and estimates."}</p>
+                </div>
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="p-2 rounded-full hover:bg-[var(--s-btn)] transition-colors opacity-50 hover:opacity-100"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 6 6 18M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
 
               <form onSubmit={handleAddTask} className="space-y-6">
                 <div className="space-y-2">
@@ -248,7 +247,7 @@ export default function TasksPage() {
                     <select
                       value={courseName}
                       onChange={(e) => setCourseName(e.target.value)}
-                      className="w-full bg-[var(--s-btn)] border border-[var(--border)] rounded-xl px-4 py-3 pr-10 appearance-none outline-none focus:ring-2 focus:ring-[var(--p-btn)] transition-all cursor-pointer"
+                      className="w-full bg-[var(--s-btn)] border border-[var(--border)] rounded-xl px-4 py-3.5 pr-10 appearance-none outline-none focus:ring-2 focus:ring-blue-500/50 transition-all cursor-pointer text-sm"
                     >
                       <option value="">Select Course</option>
                       {availableCourses.map((c, i) => (
@@ -270,11 +269,11 @@ export default function TasksPage() {
                     placeholder="e.g., Midterm Exam Prep"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    className="w-full bg-[var(--s-btn)] border border-[var(--border)] rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[var(--p-btn)] transition-all"
+                    className="w-full bg-[var(--s-btn)] border border-[var(--border)] rounded-xl px-4 py-3.5 outline-none focus:ring-2 focus:ring-blue-500/50 transition-all text-sm"
                   />
                 </div>
 
-                <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <div className="relative z-20">
                       <DateTimePicker
@@ -294,7 +293,7 @@ export default function TasksPage() {
                         placeholder="2.5"
                         value={estimatedHours}
                         onChange={(e) => setEstimatedHours(e.target.value)}
-                        className="w-full bg-[var(--s-btn)] border border-[var(--border)] rounded-xl pl-4 pr-12 py-3 outline-none focus:ring-2 focus:ring-[var(--p-btn)] transition-all text-sm"
+                        className="w-full bg-[var(--s-btn)] border border-[var(--border)] rounded-xl pl-4 pr-12 py-3.5 outline-none focus:ring-2 focus:ring-blue-500/50 transition-all text-sm"
                       />
                       <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold opacity-30">HRS</span>
                     </div>
@@ -303,7 +302,7 @@ export default function TasksPage() {
 
                 <div className="space-y-2">
                   <label className="text-[11px] font-black uppercase opacity-60 tracking-wider">Priority</label>
-                  <div className="grid grid-cols-3 gap-2 p-1 bg-[var(--s-btn)] rounded-xl border border-[var(--border)]">
+                  <div className="grid grid-cols-3 gap-2 p-1 bg-[var(--s-btn)] rounded-[1.25rem] border border-[var(--border)]">
                     {['low', 'medium', 'high'].map((p) => {
                       const colors = {
                         low: "bg-emerald-500 text-white shadow-emerald-500/20",
@@ -315,7 +314,7 @@ export default function TasksPage() {
                           key={p}
                           type="button"
                           onClick={() => setPriority(p)}
-                          className={`py-2 rounded-lg text-xs font-bold capitalize transition-all ${priority === p
+                          className={`py-2.5 rounded-xl text-xs font-bold capitalize transition-all ${priority === p
                             ? `${colors[p]} shadow-lg`
                             : 'opacity-40 hover:opacity-100 hover:bg-white/5'
                             }`}
@@ -327,17 +326,17 @@ export default function TasksPage() {
                   </div>
                 </div>
 
-                <div className="flex gap-3 pt-4">
+                <div className="flex gap-4 pt-6">
                   <button
                     type="button"
                     onClick={() => setShowModal(false)}
-                    className="flex-1 px-4 py-3 rounded-xl font-bold text-sm hover:bg-[var(--s-btn)] transition-colors"
+                    className="flex-1 px-4 py-3.5 rounded-xl font-bold text-sm hover:bg-[var(--s-btn)] transition-colors opacity-70 hover:opacity-100"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-3 rounded-xl bg-[var(--p-btn)] text-[var(--p-btn-txt)] font-bold text-sm hover:shadow-lg transition-all active:scale-95"
+                    className="flex-1 px-4 py-3.5 rounded-xl bg-[var(--p-btn)] text-[var(--p-btn-txt)] font-bold text-sm hover:shadow-xl hover:shadow-blue-500/20 transition-all active:scale-95"
                   >
                     {editingTask ? "Update Task" : "Add Task"}
                   </button>
@@ -351,14 +350,130 @@ export default function TasksPage() {
   );
 }
 
+function CollapsibleSection({ title, count, children, variant = "default", defaultOpen = true }) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  const styles = {
+    danger: {
+      header: "bg-red-500/5 border-red-500/20 text-red-500 hover:bg-red-500/10",
+      badge: "bg-red-500 text-white shadow-red-500/20",
+      icon: "text-red-500"
+    },
+    default: {
+      header: "bg-white/[0.02] border-[var(--border)] text-[var(--text)] hover:bg-white/[0.04]",
+      badge: "bg-blue-500 text-white shadow-blue-500/20",
+      icon: "opacity-40"
+    }
+  }[variant];
+
+  return (
+    <div className="flex flex-col gap-4">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className={`flex items-center justify-between w-full px-6 py-4 rounded-2xl border transition-all group ${styles.header}`}
+      >
+        <div className="flex items-center gap-3">
+          <div className={`p-1 rounded-lg transition-transform duration-300 ${isOpen ? 'rotate-180' : ''} ${styles.icon}`}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </div>
+          <h2 className="text-lg font-bold tracking-tight">{title}</h2>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black shadow-lg ${styles.badge}`}>
+            {count}
+          </span>
+        </div>
+        <div className="text-[10px] font-black uppercase tracking-widest opacity-30 group-hover:opacity-100 transition-opacity">
+          {isOpen ? 'Collapse' : 'Expand'}
+        </div>
+      </button>
+
+      <div className={`grid transition-all duration-300 ease-in-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0 pointer-events-none'}`}>
+        <div className="overflow-hidden">
+          <div className="pt-2 pb-4">
+            {children}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TaskCard({ task, onEdit, isOverdue }) {
+  return (
+    <div
+      className={`group relative bg-[var(--bg)] border rounded-3xl p-6 transition-all hover:shadow-2xl hover:shadow-black/[0.04] ${isOverdue
+        ? "border-red-500/30 bg-red-500/[0.02] hover:border-red-500"
+        : "border-[var(--border)] hover:border-blue-500/50"
+        }`}
+    >
+      {/* Edit Button */}
+      <button
+        onClick={onEdit}
+        className="absolute top-5 right-5 p-2.5 rounded-xl bg-[var(--s-btn)] opacity-0 group-hover:opacity-100 transition-all hover:bg-blue-500 hover:text-white shadow-sm"
+        title="Edit Task"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+        </svg>
+      </button>
+
+      <div className="flex justify-between items-start mb-5 pr-10">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <span className={`text-[10px] font-bold uppercase tracking-[0.1em] ${isOverdue ? "text-red-500" : "text-blue-500 opacity-80"}`}>
+              {task.courseId?.name || "Independent"}
+            </span>
+            {isOverdue && (
+              <span className="bg-red-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.4)]">
+                Overdue
+              </span>
+            )}
+          </div>
+          <h2 className={`text-xl font-bold leading-tight group-hover:translate-x-1 transition-transform duration-300 ${isOverdue ? "text-red-600" : ""}`}>
+            {task.title}
+          </h2>
+        </div>
+        <PriorityBadge priority={task.priority} />
+      </div>
+
+      <div className={`flex items-center justify-between mt-6 pt-5 border-t ${isOverdue ? "border-red-500/10" : "border-[var(--border)]/40"}`}>
+        <div className="flex items-center gap-5">
+          <div className="flex flex-col">
+            <span className={`text-[9px] uppercase font-black tracking-tight opacity-40 mb-0.5 ${isOverdue ? "text-red-500 opacity-60" : ""}`}>Deadline</span>
+            <span className={`text-sm font-semibold ${isOverdue ? "text-red-600" : "opacity-80"}`}>
+              {new Date(task.deadline).toLocaleString(undefined, {
+                month: "short",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
+          </div>
+          <div className={`w-[1px] h-8 ${isOverdue ? "bg-red-500/10" : "bg-[var(--border)]"}`} />
+          <div className="flex flex-col">
+            <span className="text-[9px] uppercase font-black tracking-tight opacity-40 mb-0.5">Estimate</span>
+            <span className="text-sm font-semibold opacity-80">{task.estimatedHours}h</span>
+          </div>
+        </div>
+        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-0 translate-x-4 ${isOverdue ? "bg-red-500 text-white shadow-lg shadow-red-500/20" : "bg-[var(--s-btn)] shadow-sm"}`}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12h14M12 5l7 7-7 7" />
+          </svg>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PriorityBadge({ priority }) {
   const styles = {
-    high: "bg-red-500/10 text-red-600 dark:text-red-400",
-    medium: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-    low: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+    high: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
+    medium: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+    low: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
   };
   return (
-    <span className={`text-[10px] font-black px-2.5 py-1 rounded-md uppercase tracking-tighter ${styles[priority]}`}>
+    <span className={`text-[10px] font-black px-3 py-1.5 rounded-xl uppercase tracking-tighter border ${styles[priority]}`}>
       {priority}
     </span>
   );
