@@ -17,7 +17,7 @@
 9. [Authentication & Middleware](#authentication--middleware)
 10. [Scheduler Algorithm](#scheduler-algorithm)
 11. [Testing](#testing)
-12. [CI/CD Pipeline](#cicd-pipeline)
+12. [DevOps Documentation](DEVOPS.md)
 
 ---
 
@@ -889,6 +889,15 @@ Integration tests for the main application pages.
 | `jest.config.mjs` | Jest configuration using `next/jest` for Next.js-aware transforms, path aliases, and test environment setup |
 | `jest.setup.js` | Global setup that loads `@testing-library/jest-dom` custom matchers (e.g., `toBeInTheDocument()`) |
 
+### Regression Testing
+
+Regression testing is fully automated via our CI/CD pipeline (GitHub Actions). On every push and pull request to the `main` or `master` branches, the entire Jest test suite (unit, integration, and component tests) is executed to ensure that new code changes do not break existing functionality. 
+
+### End-to-End (E2E) Testing
+
+Currently, **End-to-End (E2E) testing is not implemented** in this project. 
+To ensure critical user journeys (like full login flows, plan generation, and timetable builder) work seamlessly in a real browser environment, it is highly recommended to introduce an E2E testing framework such as **Playwright** or **Cypress** in the future.
+
 ### Test Results
 
 ```
@@ -899,46 +908,8 @@ Snapshots:   0 total
 
 ---
 
-## CI/CD Pipeline
+## DevOps & CI/CD
 
-This project uses **GitHub Actions** for continuous integration and **Vercel** for continuous deployment.
+The DevOps documentation, including the CI/CD Pipeline and Deployment instructions, has been moved to a separate file.
 
-### GitHub Actions Workflow
-
-The CI pipeline is defined in `.github/workflows/ci.yml` and runs automatically on:
-
-- **Push** to `main` or `master`
-- **Pull requests** targeting `main` or `master`
-
-#### Pipeline Steps
-
-| Step | Command | Purpose |
-|------|---------|---------|
-| Checkout | `actions/checkout@v4` | Clone the repository |
-| Setup Node.js | `actions/setup-node@v4` | Install Node.js (v20) |
-| Install | `npm ci` | Clean install of dependencies |
-| Lint | `npm run lint` | ESLint code quality checks |
-| Test | `npm test -- --ci --coverage` | Run all 72 Jest tests with coverage report |
-| Build | `npm run build` | Verify production build succeeds |
-
-#### Node.js Version
-
-The workflow runs on **Node 20** to satisfy Next.js >=20.9.0 requirements.
-
-### Required Secrets
-
-Configure these in **GitHub → Settings → Secrets and variables → Actions**:
-
-| Secret | Used In | Purpose |
-|--------|---------|---------|
-| `MONGODB_URI` | Build step | MongoDB connection string for build-time validation |
-| `JWT_SECRET` | Build step | JWT signing secret (tests use a hardcoded CI value) |
-
-### Vercel Deployment
-
-Vercel is connected to the GitHub repository for automatic deployments:
-
-- **Production** — Deployed on push to `main`/`master`
-- **Preview** — Deployed on pull requests
-
-Environment variables (`MONGODB_URI`, `JWT_SECRET`) must be configured in the **Vercel Dashboard → Project Settings → Environment Variables**.
+Please refer to **[DEVOPS.md](./DEVOPS.md)** for details on GitHub Actions, Vercel deployment, and environment secrets.
