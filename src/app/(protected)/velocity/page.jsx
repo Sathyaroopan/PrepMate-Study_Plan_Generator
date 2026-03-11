@@ -39,7 +39,9 @@ export default function VelocityPage() {
         const res = await fetch("/api/tasks");
         if (res.ok) {
           const data = await res.json();
-          setTasks(data);
+          // Filter out completed tasks
+          const filteredTasks = data.filter(task => task.status !== "completed");
+          setTasks(filteredTasks);
         }
       } catch (err) {
         console.error("Failed to fetch tasks", err);
