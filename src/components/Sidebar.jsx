@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from 'next/image';
-import { Sparkles } from "lucide-react";
+import { Sparkles, Brain } from "lucide-react";
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -81,6 +81,17 @@ export default function Sidebar() {
               className={`px-4 py-2.5 rounded-lg transition-all duration-200 ${getLinkStyles("/study-plans")}`}
             >
               Study Plans
+            </Link>
+
+            <Link
+              href="/analytics"
+              className={`group flex items-center justify-between gap-4 px-4 py-2.5 rounded-lg transition-all duration-200 w-full ${getLinkStyles("/analytics")}`}
+            >
+              <span className="font-medium">Analytics</span>
+              <Brain 
+                size={16} 
+                className="shrink-0 transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110 opacity-70 group-hover:opacity-100" 
+              />
             </Link>
 
             <Link

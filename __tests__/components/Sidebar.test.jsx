@@ -4,6 +4,7 @@ import Sidebar from "@/components/Sidebar";
 // Mock lucide-react
 jest.mock("lucide-react", () => ({
     Sparkles: () => <div data-testid="sparkles-icon" />,
+    Brain: () => <div data-testid="brain-icon" />,
 }));
 
 // Mock next/navigation
